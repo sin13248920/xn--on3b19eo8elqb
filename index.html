@@ -52,8 +52,6 @@
   /* 알림 */
   #toast { position: absolute; z-index: 1100; left: 50%; top: calc(16px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: rgba(29,36,51,.92); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 80vw; text-align: center; }
   #toast.show { opacity: 1; }
-  #notice { position: absolute; z-index: 1200; left: 50%; top: 50%; transform: translate(-50%,-50%); width: min(420px, 88vw); background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; line-height: 1.6; font-size: 14px; display: none; }
-  #notice strong { display: block; font-size: 16px; margin-bottom: 6px; }
 
   /* 터치 버튼 */
   .pad { position: absolute; z-index: 1000; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: none; gap: 10px; }
@@ -128,46 +126,37 @@
 </div>
 
 <div id="toast" role="status"></div>
-<div id="notice"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  const notice = (title, body) => {
-    const n = $('notice');
-    n.innerHTML = '<strong></strong><span></span>';
-    n.firstChild.textContent = title;
-    n.lastChild.textContent = body;
-    n.style.display = 'block';
-  };
 
-  if (typeof L === 'undefined') {
-    notice('지도 라이브러리를 불러오지 못했어요',
-      '인터넷 연결을 확인하거나, 미리보기 창이 아닌 일반 브라우저(또는 GitHub Pages 주소)에서 열어 보세요.');
-    return;
-  }
-
-  // ───────── 설정 (브라우저에 저장) ─────────
   const KEY = 'map-drive-settings';
   const loadS = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const saveS = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
   const S = Object.assign({ trans: 'auto', trail: true, limitKmh: 80 }, loadS());
 
-  // ───────── 상수 ─────────
-  const START = { lat: 37.6136, lng: 127.1019, heading: 0 };   // 서울 중랑차고지
-  const GEAR_FRAC = [0, 0.20, 0.38, 0.56, 0.73, 0.88, 1.0];    // 기어별 최고속도 비율 (최고속도 × 비율)
-  const GEAR_ACC  = [0, 7.5, 5.6, 4.3, 3.4, 2.7, 2.1];         // 기어별 최대 가속도 (m/s²)
+  const START = { lat: 37.6136, lng: 127.1019, heading: 0 };
+  const GEAR_FRAC = [0, 0.20, 0.38, 0.56, 0.73, 0.88, 1.0];
+  const GEAR_ACC  = [0, 7.5, 5.6, 4.3, 3.4, 2.7, 2.1];
   const IDLE = 900, REDLINE = 7000;
-  const CFG = {
-    brake: 9,          // 풋브레이크 (m/s²)
-    handbrake: 14,     // 핸드브레이크
-    turnRate: 95,      // 최대 조향 속도 (도/초)
-    zoomNear: 18.4,    // 정지 시 줌
-    zoomFar: 17.2      // 최고속도 시 줌
-  };
+  const CFG = { brake: 9, handbrake: 14, turnRate: 95, zoomNear: 18.4, zoomFar: 17.2 };
 
-  // ───────── 지도 (API 키 불필요) ─────────
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  if (typeof L === 'undefined') {
+    toast('Leaflet 라이브러리를 불러오지 못했습니다.');
+    return;
+  }
+
   const map = L.map('map', {
     zoomControl: false, zoomSnap: 0, zoomAnimation: false, fadeAnimation: false,
     dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
@@ -176,20 +165,38 @@
 
   L.control.attribution({ position: 'bottomright', prefix: false }).addTo(map);
 
-  let tilesLoaded = 0, tileErrors = 0;
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 20,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  const FallbackGrid = L.GridLayer.extend({
+    createTile: function(coords) {
+      const tile = document.createElement('canvas');
+      const size = this.getTileSize();
+      tile.width = size.x;
+      tile.height = size.y;
+      const ctx = tile.getContext('2d');
+      ctx.fillStyle = '#eef1f5';
+      ctx.fillRect(0, 0, size.x, size.y);
+      ctx.strokeStyle = '#d0d7e2';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0, 0, size.x, size.y);
+      return tile;
+    }
+  });
+
+  let tilesLoaded = 0, tileErrors = 0, fallbackAdded = false;
+
+  // 안정적인 Esri 도로 지도 (API 키 불필요, 검은 화면 문제 해결)
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri'
   }).on('tileload', () => { tilesLoaded++; })
     .on('tileerror', () => {
       tileErrors++;
-      if (tileErrors >= 4 && tilesLoaded === 0) {
-        notice('지도 타일을 불러오지 못했어요',
-          '외부 이미지를 막는 환경(예: 미리보기 창)에서는 지도가 보이지 않아요. 일반 브라우저나 GitHub Pages 주소에서 열어 보세요.');
+      if (tileErrors >= 3 && tilesLoaded === 0 && !fallbackAdded) {
+        fallbackAdded = true;
+        new FallbackGrid().addTo(map);
+        toast('오프라인 모드로 전환됨');
       }
     }).addTo(map);
 
-  // ───────── 차량(화살표) ─────────
   const arrowSvg = `
     <svg width="44" height="44" viewBox="-22 -22 44 44" id="arrow">
       <path d="M0 -18 L13 15 L0 8 L-13 15 Z" fill="#e8392b" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
@@ -198,27 +205,15 @@
     icon: L.divIcon({ className: 'car-icon', html: arrowSvg, iconSize: [44, 44], iconAnchor: [22, 22] }),
     interactive: false, keyboard: false, zIndexOffset: 1000
   }).addTo(map);
-  const trail = L.polyline([], { color: '#e8392b', weight: 4, opacity: 0.45, lineCap: 'round' }).addTo(map);
+  const trail = L.polyline([], { color: '#e8392b', weight: 4, opacity: 0.6, lineCap: 'round' }).addTo(map);
 
-  // ───────── 상태 ─────────
   const car = { lat: START.lat, lng: START.lng, heading: START.heading, v: 0, gear: 1, rpm: IDLE };
   const keys = { up: false, down: false, left: false, right: false, hand: false, clutch: false };
   let zoom = CFG.zoomNear;
   let trailPts = [];
   let frame = 0;
 
-  // ───────── 알림 ─────────
-  let toastTimer;
-  function toast(msg) {
-    const t = $('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
-  }
-
-  // ───────── 변속 ─────────
-  const GEAR_SEQ = [-1, 0, 1, 2, 3, 4, 5, 6];   // R, N, 1~6
+  const GEAR_SEQ = [-1, 0, 1, 2, 3, 4, 5, 6];
   function shiftGear(d) {
     if (S.trans !== 'manual') return;
     if (!keys.clutch) { toast('클러치(Shift)를 누른 채 변속하세요'); return; }
@@ -228,7 +223,6 @@
     car.gear = GEAR_SEQ[i];
   }
 
-  // ───────── 입력 ─────────
   const keyMap = {
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
@@ -270,7 +264,6 @@
   }
   $('reset').addEventListener('click', e => { resetCar(); e.currentTarget.blur(); });
 
-  // ───────── 설정 UI ─────────
   const panel = $('panel');
   $('open-settings').addEventListener('click', e => { panel.hidden = !panel.hidden; e.currentTarget.blur(); });
 
@@ -292,7 +285,6 @@
   car.gear = S.trans === 'manual' ? 0 : 1;
   applySettings();
 
-  // ───────── 물리 ─────────
   function torque(frac) {
     if (frac < 0.15) return 0.35 + 0.4 * (frac / 0.15);
     if (frac < 0.5) return 0.75 + 0.25 * ((frac - 0.15) / 0.35);
@@ -312,7 +304,6 @@
     const gearMax = g => (g === -1 ? Math.min(5, limit * 0.4) : limit * GEAR_FRAC[g]);
     const manual = S.trans === 'manual';
 
-    // 입력 해석 + 자동 변속
     let throttle = 0, brake = 0;
     if (manual) {
       throttle = keys.up ? 1 : 0;
@@ -328,7 +319,6 @@
       }
     }
 
-    // 구동
     const g = car.gear;
     const engaged = g !== 0 && !(manual && keys.clutch);
     let gm = 1;
@@ -348,42 +338,35 @@
         car.v -= Math.sign(car.v) * Math.min(Math.abs(car.v), eb * dt);
       }
       if (along > gm) {
-        // 기어 한계 초과(과회전): 엔진 브레이크로 빠르게 감속
         car.v -= dir * Math.min(along - gm, (6 + 20 * (along / gm - 1)) * dt);
       }
     }
 
-    // 구름 저항 / 브레이크
     const roll = (0.12 * Math.abs(car.v) + 0.5) * dt;
     car.v -= Math.sign(car.v) * Math.min(Math.abs(car.v), roll);
     const bf = (brake ? CFG.brake : 0) + (keys.hand ? CFG.handbrake : 0);
     if (bf) car.v -= Math.sign(car.v) * Math.min(Math.abs(car.v), bf * dt);
     if (Math.abs(car.v) < 0.03 && !throttle) car.v = 0;
 
-    // 엔진 회전수
     let rpmTarget;
     if (engaged) rpmTarget = IDLE + (REDLINE - IDLE) * Math.min(1, Math.abs(car.v) / gm);
     else rpmTarget = IDLE + (REDLINE - IDLE) * throttle * 0.85;
     car.rpm += (rpmTarget - car.rpm) * Math.min(1, dt * (engaged ? 10 : 6));
 
-    // 조향: 멈춰 있으면 회전 불가, 고속일수록 둔감
     const steer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
     const av = Math.abs(car.v);
     const grip = Math.min(1, av / 5) / (1 + av / 18);
     car.heading += steer * CFG.turnRate * grip * Math.sign(car.v) * dt;
     car.heading = (car.heading % 360 + 360) % 360;
 
-    // 위치 갱신 (미터 → 위경도)
     const rad = car.heading * Math.PI / 180;
     const dist = car.v * dt;
     car.lat += (dist * Math.cos(rad)) / M_PER_DEG;
     car.lng += (dist * Math.sin(rad)) / (M_PER_DEG * Math.cos(car.lat * Math.PI / 180));
 
-    // 줌: 빠를수록 멀리 보이게
     const targetZoom = CFG.zoomNear - (CFG.zoomNear - CFG.zoomFar) * Math.min(1, av / limit);
     zoom += (targetZoom - zoom) * Math.min(1, dt * 2.5);
 
-    // 화면 반영
     const ll = [car.lat, car.lng];
     map.setView(ll, zoom, { animate: false });
     marker.setLatLng(ll);
@@ -398,7 +381,6 @@
     el.txt.textContent = Math.round(car.rpm / 10) * 10 + ' rpm';
     el.cl.classList.toggle('on', keys.clutch);
 
-    // 궤적 (매 3프레임, 최근 300점)
     if (S.trail && ++frame % 3 === 0 && av > 0.5) {
       trailPts.push(ll);
       if (trailPts.length > 300) trailPts.shift();
