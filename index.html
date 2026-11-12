@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>지도 운전게임</title>
+<title>지도 버스 운전게임</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 <style>
   :root {
@@ -124,15 +124,6 @@
       <label><input type="radio" name="trans" value="manual"> 수동</label>
     </fieldset>
     <label><input type="checkbox" id="trail"> 주행 궤적 남기기</label>
-    <div class="line"><span>최고속도</span>
-      <select id="limit" aria-label="최고속도">
-        <option value="30">30 km/h</option>
-        <option value="40">40 km/h</option>
-        <option value="50">50 km/h</option>
-        <option value="60">60 km/h</option>
-        <option value="80">80 km/h</option>
-      </select>
-    </div>
   </div>
 </div>
 
@@ -178,34 +169,55 @@
 
   // ───────── 설정 (브라우저에 저장) ─────────
   const KEY = 'map-drive-settings-v3';
-  const LIMITS = [30, 40, 50, 60, 80];
   const loadS = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const saveS = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-  const S = Object.assign({ trans: 'auto', trail: true, limitKmh: 50, zoom: 17 }, loadS());
-  if (!LIMITS.includes(S.limitKmh)) S.limitKmh = 50;
+  const S = Object.assign({ trans: 'auto', trail: true, zoom: 17 }, loadS());
   S.zoom = clamp(Math.round((Number(S.zoom) || 17) * 2) / 2, 15.5, 19);
 
-  // ───────── 차량 제원 / 튜닝 값 (여기를 고치면 버스 느낌이 바뀜) ─────────
+  // ───────── 차량 제원 / 튜닝 값 ─────────
   const START = { lat: 37.6136, lng: 127.1019, heading: 0 };   // 서울 중랑차고지
-  const BUS = {
-    wheelbase: 6.0,      // 축거 (m) — 12m급 대형 버스
-    maxSteer: 35,        // 최대 조향각 (도) → 최소 회전반경 약 8.6m
-    latLimit: 3.0        // 선회 시 허용 횡가속도 (m/s²): 고속일수록 조향각을 이 한도로 제한
+
+  // 차량별 제원. 저상/일렉시티는 같은 형식으로 항목만 추가하면 됨.
+  const VEHICLES = {
+    high: {
+      name: '에어로시티 (고상)',
+      // 조향 (※ 아직 제원표에 없는 값: 임시값)
+      wheelbase: 6.0,      // 축거 (m)
+      maxSteer: 35,        // 최대 조향각 (도) → 최소 회전반경 약 8.6m
+      latLimit: 3.0,       // 선회 시 허용 횡가속도 (m/s²): 고속일수록 조향각 제한
+      // 변속기: 5단 수동 (제원표)
+      gearLimit: [0, 18, 35, 52, 72, 88],   // 기어별 한계 속도, 레드존 부근 (km/h)
+      gearRec: [null, [0, 12], [12, 28], [28, 45], [45, 65], [65, 85]],   // 기어별 권장 속도 구간 (km/h)
+      reverseLimit: 8,     // 후진 한계 속도 (km/h)
+      // 기어별 최대 가속도 (m/s²) ※ 제원표에 없는 값: 임시값
+      gearAcc: [0, 1.3, 1.1, 0.95, 0.85, 0.8],   // 자동 변속 기준 0→50km/h 약 17초, 0→80km/h 약 35초
+      // 디젤 엔진 회전수
+      idle: 650, redline: 2600,
+      // 브레이크 (제원표)
+      brake: {
+        service: 2.2,      // 일반 정차 감속 최대 (제원표 1.8~2.2 m/s²)
+        full: 4.5,         // 풀 브레이킹(급정거) 감속 (m/s²)
+        airLag: 0.15,      // 일반 브레이크 공압 지연 (초)
+        fullLag: 0.08      // 풀 브레이크 공압 지연 (초)
+      }
+    }
   };
-  const GEAR_FRAC = [0, 0.20, 0.38, 0.56, 0.73, 0.88, 1.0];    // 기어별 최고속도 비율 (최고속도 × 비율)
-  const GEAR_ACC  = [0, 1.2, 1.0, 0.85, 0.7, 0.55, 0.45];      // 기어별 최대 가속도 (m/s²)
-  const IDLE = 900, REDLINE = 7000;
+  const VEH = VEHICLES.high;
+  const BUS = VEH;
+  const MAXG = VEH.gearLimit.length - 1;
+  const IDLE = VEH.idle, REDLINE = VEH.redline;
+
   const CFG = {
-    brake: 2.8,          // 일반 브레이크 최대 감속 (m/s²)
-    emergency: 6.0,      // 비상 브레이크 (Space) 추가 감속
+    brake: VEH.brake.service,
+    emergency: VEH.brake.full,   // Space 단독으로 낼 수 있는 총 감속 (일반 브레이크와 합산하지 않음)
     softStop: [0.3, 1.4],// 정차 직전 감속 완화: 감속 ≤ 0.3 + 1.4×속도 → 마지막에 '쿵' 하지 않음
     thrUp: 0.9, thrDown: 2.5,   // 가속 페달 밟는/떼는 속도 (1/초)
-    brkUp: 0.7, brkDown: 3.0,   // 브레이크 페달 밟는/떼는 속도
-    emgUp: 3.0, emgDown: 4.0,   // 비상 브레이크
+    brkUp: 1.0, brkDown: 3.0,   // 브레이크 페달 밟는/떼는 속도 (키를 약 1초 누르면 최대)
+    emgUp: 6.0, emgDown: 4.0,   // 비상 브레이크
     steerRate: 45,       // 핸들 돌리는 속도 (도/초)
     steerReturn: 70,     // 핸들 복귀 속도
-    comfortOk: 1.3,      // 이하: 쾌적 (m/s²)
-    comfortWarn: 2.0     // 이상: 서 있는 승객이 넘어질 수 있음
+    comfortOk: 2.2,      // 미만: 쾌적 (제원표의 일반 정차 감속 상한, m/s²)
+    comfortWarn: 3.5     // 이상: 서 있는 승객이 넘어질 수 있음 (풀 브레이킹 4.5는 여기에 해당)
   };
 
   // ───────── 지도 (API 키 불필요: OpenFreeMap + MapLibre) ─────────
@@ -256,7 +268,7 @@
   // ───────── 상태 ─────────
   const car = {
     lat: START.lat, lng: START.lng, heading: START.heading, v: 0, gear: 1, rpm: IDLE,
-    thr: 0, brk: 0, emg: 0, steer: 0, aLong: 0
+    thr: 0, brk: 0, emg: 0, pSvc: 0, pEmg: 0, steer: 0, aLong: 0
   };
   const keys = { up: false, down: false, left: false, right: false, hand: false, clutch: false };
   let trailPts = [];
@@ -274,7 +286,7 @@
   }
 
   // ───────── 변속 ─────────
-  const GEAR_SEQ = [-1, 0, 1, 2, 3, 4, 5, 6];   // R, N, 1~6
+  const GEAR_SEQ = [-1, 0, ...Array.from({ length: MAXG }, (_, i) => i + 1)];   // R, N, 1~5단
   function shiftGear(d) {
     if (S.trans !== 'manual') return;
     if (!keys.clutch) { toast('클러치(Shift)를 누른 채 변속하세요'); return; }
@@ -330,7 +342,7 @@
   function resetCar() {
     Object.assign(car, {
       lat: START.lat, lng: START.lng, heading: START.heading, v: 0, rpm: IDLE,
-      thr: 0, brk: 0, emg: 0, steer: 0, aLong: 0
+      thr: 0, brk: 0, emg: 0, pSvc: 0, pEmg: 0, steer: 0, aLong: 0
     });
     car.gear = S.trans === 'manual' ? 0 : 1;
     trailPts = []; setTrail([]);
@@ -349,7 +361,6 @@
     document.body.classList.toggle('manual', S.trans === 'manual');
     document.querySelectorAll('input[name=trans]').forEach(r => { r.checked = r.value === S.trans; });
     $('trail').checked = S.trail;
-    $('limit').value = String(S.limitKmh);
     if (!S.trail) { trailPts = []; setTrail([]); }
     if (S.trans === 'auto' && car.gear === 0) car.gear = 1;
   }
@@ -358,17 +369,17 @@
     toast(S.trans === 'manual' ? '수동: Shift를 누른 채 E/Q로 변속' : '자동 변속');
   }));
   $('trail').addEventListener('change', e => { S.trail = e.target.checked; applySettings(); saveS(); e.target.blur(); });
-  $('limit').addEventListener('change', e => { S.limitKmh = Number(e.target.value); saveS(); e.target.blur(); });
 
   car.gear = S.trans === 'manual' ? 0 : 1;
   applySettings();
 
   // ───────── 물리 ─────────
+  // 디젤 토크 곡선: 저회전에서는 약하고(힘이 안 붙음), 중간 회전에서 최대, 한계 속도 부근에서 감소
   function torque(frac) {
-    if (frac < 0.15) return 0.35 + 0.4 * (frac / 0.15);
-    if (frac < 0.5) return 0.75 + 0.25 * ((frac - 0.15) / 0.35);
-    if (frac < 0.9) return 1;
-    return Math.max(0, 1 - 0.4 * ((frac - 0.9) / 0.1));
+    if (frac < 0.12) return 0.35 + 0.35 * (frac / 0.12);
+    if (frac < 0.3) return 0.7 + 0.3 * ((frac - 0.12) / 0.18);
+    if (frac < 0.75) return 1;
+    return Math.max(0.55, 1 - 0.45 * ((frac - 0.75) / 0.25));
   }
 
   const M_PER_DEG = 111320;
@@ -384,8 +395,7 @@
     last = now;
     const vPrev = car.v;
 
-    const limit = S.limitKmh / 3.6;
-    const gearMax = g => (g === -1 ? Math.min(4, limit * 0.4) : limit * GEAR_FRAC[g]);
+    const gearMax = g => (g === -1 ? VEH.reverseLimit : VEH.gearLimit[g]) / 3.6;
     const manual = S.trans === 'manual';
 
     // 입력 해석 + 자동 변속
@@ -399,8 +409,9 @@
       if (car.gear === -1) { throttleIn = keys.down ? 1 : 0; brakeIn = keys.up ? 1 : 0; }
       else { throttleIn = keys.up ? 1 : 0; brakeIn = keys.down ? 1 : 0; }
       if (car.gear >= 1) {
-        if (car.gear < 6 && car.v > gearMax(car.gear) * 0.9) car.gear++;
-        else if (car.gear > 1 && car.v < gearMax(car.gear - 1) * 0.55) car.gear--;
+        const kmh = car.v * 3.6;
+        if (car.gear < MAXG && kmh > VEH.gearRec[car.gear][1]) car.gear++;
+        else if (car.gear > 1 && kmh < VEH.gearRec[car.gear][0] - 3) car.gear--;
       }
     }
 
@@ -422,7 +433,7 @@
         if (along < gm) {
           let tq = torque(frac);
           if (!manual && frac < 0.5) tq = Math.max(tq, 0.85);
-          car.v += dir * (g === -1 ? 0.9 : GEAR_ACC[g]) * tq * car.thr * dt;
+          car.v += dir * (g === -1 ? 0.9 : VEH.gearAcc[g]) * tq * car.thr * dt;
         }
       } else {
         const eb = (manual ? 0.9 : 0.4) * Math.min(1, frac);
@@ -441,9 +452,11 @@
 
     // 브레이크 (일반 브레이크는 정차 직전에 부드럽게 풀림)
     const av1 = Math.abs(car.v);
-    const svc = Math.min(car.brk * CFG.brake, CFG.softStop[0] + CFG.softStop[1] * av1);
-    const emg = car.emg * CFG.emergency;
-    car.v -= Math.sign(car.v) * Math.min(av1, (svc + emg) * dt);
+    car.pSvc += (car.brk - car.pSvc) * (1 - Math.exp(-dt / VEH.brake.airLag));   // 공압 지연
+    car.pEmg += (car.emg - car.pEmg) * (1 - Math.exp(-dt / VEH.brake.fullLag));
+    const svc = Math.min(car.pSvc * CFG.brake, CFG.softStop[0] + CFG.softStop[1] * av1);
+    const emg = car.pEmg * CFG.emergency;
+    car.v -= Math.sign(car.v) * Math.min(av1, Math.max(svc, emg) * dt);
     if (Math.abs(car.v) < 0.02 && car.thr < 0.05) car.v = 0;
 
     // 엔진 회전수
@@ -495,7 +508,8 @@
     const rf = (car.rpm - IDLE) / (REDLINE - IDLE);
     el.bar.style.width = clamp(rf * 100, 2, 100) + '%';
     el.bar.classList.toggle('hot', rf > 0.88);
-    el.txt.textContent = Math.round(car.rpm / 10) * 10 + ' rpm';
+    const rec = g >= 1 ? ' · 권장 ' + VEH.gearRec[g][0] + '–' + VEH.gearRec[g][1] : '';
+    el.txt.textContent = Math.round(car.rpm / 10) * 10 + ' rpm' + rec;
     el.cl.classList.toggle('on', keys.clutch);
 
     // 궤적 (매 3프레임, 최근 300점)
