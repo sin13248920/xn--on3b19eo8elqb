@@ -183,17 +183,17 @@
 
   let tilesLoaded = 0, tileErrors = 0, fallbackAdded = false;
 
-  // 안정적인 Esri 도로 지도 (API 키 불필요, 검은 화면 문제 해결)
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+  // 오픈스트리트맵 공식 타일 (API 키 불필요)
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution: 'Tiles &copy; Esri'
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).on('tileload', () => { tilesLoaded++; })
     .on('tileerror', () => {
       tileErrors++;
       if (tileErrors >= 3 && tilesLoaded === 0 && !fallbackAdded) {
         fallbackAdded = true;
         new FallbackGrid().addTo(map);
-        toast('오프라인 모드로 전환됨');
+        toast('오프라인 격자 모드로 전환됨');
       }
     }).addTo(map);
 
