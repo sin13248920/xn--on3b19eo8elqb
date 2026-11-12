@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>지도 운전게임</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 <style>
   :root {
     --ink: #1d2433;
@@ -82,11 +82,17 @@
     #panel { width: 232px; }
   }
 
-  .car-icon svg { display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+  #car { position: absolute; z-index: 500; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; pointer-events: none; }
+  #car svg { display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
 </style>
 </head>
 <body>
 <div id="map"></div>
+<div id="car">
+  <svg width="44" height="44" viewBox="-22 -22 44 44" id="arrow">
+    <path d="M0 -18 L13 15 L0 8 L-13 15 Z" fill="#e8392b" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+  </svg>
+</div>
 
 <div id="dash" class="hud">
   <div class="row"><span class="num" id="spd">0</span><span class="unit">km/h</span><span class="gear" id="gear">D1</span></div>
@@ -147,7 +153,7 @@
 <div id="toast" role="status"></div>
 <div id="notice"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -164,20 +170,20 @@
     n.style.display = 'block';
   };
 
-  if (typeof L === 'undefined') {
+  if (typeof maplibregl === 'undefined') {
     notice('지도 라이브러리를 불러오지 못했어요',
       '인터넷 연결을 확인하거나, 미리보기 창이 아닌 일반 브라우저(또는 GitHub Pages 주소)에서 열어 보세요.');
     return;
   }
 
   // ───────── 설정 (브라우저에 저장) ─────────
-  const KEY = 'map-drive-settings-v2';
+  const KEY = 'map-drive-settings-v3';
   const LIMITS = [30, 40, 50, 60, 80];
   const loadS = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const saveS = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-  const S = Object.assign({ trans: 'auto', trail: true, limitKmh: 50, zoom: 18 }, loadS());
+  const S = Object.assign({ trans: 'auto', trail: true, limitKmh: 50, zoom: 17 }, loadS());
   if (!LIMITS.includes(S.limitKmh)) S.limitKmh = 50;
-  S.zoom = clamp(Math.round(Number(S.zoom)) || 18, 16, 19);
+  S.zoom = clamp(Math.round((Number(S.zoom) || 17) * 2) / 2, 15.5, 19);
 
   // ───────── 차량 제원 / 튜닝 값 (여기를 고치면 버스 느낌이 바뀜) ─────────
   const START = { lat: 37.6136, lng: 127.1019, heading: 0 };   // 서울 중랑차고지
@@ -202,40 +208,50 @@
     comfortWarn: 2.0     // 이상: 서 있는 승객이 넘어질 수 있음
   };
 
-  // ───────── 지도 (API 키 불필요) ─────────
-  // 줌은 정수 단계로만 바꿉니다. 이동 중 줌을 매 프레임 바꾸면 Leaflet이 타일을 전부 버려서 지도가 사라져요.
-  const map = L.map('map', {
-    zoomControl: false, zoomSnap: 1, zoomAnimation: false, fadeAnimation: false,
-    dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
-    boxZoom: false, keyboard: false, touchZoom: false, attributionControl: false,
-    minZoom: 16, maxZoom: 19
-  }).setView([START.lat, START.lng], S.zoom);
+  // ───────── 지도 (API 키 불필요: OpenFreeMap + MapLibre) ─────────
+  const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+  let map, mapReady = false;
+  try {
+    map = new maplibregl.Map({
+      container: 'map',
+      style: STYLE_URL,
+      center: [START.lng, START.lat],
+      zoom: S.zoom,
+      interactive: false,
+      fadeDuration: 0,
+      attributionControl: { compact: true }
+    });
+  } catch (e) {
+    notice('지도를 표시할 수 없어요', '이 브라우저에서 WebGL을 사용할 수 없는 것 같아요. 다른 브라우저에서 열어 보세요.');
+    return;
+  }
 
-  L.control.attribution({ position: 'bottomright', prefix: false }).addTo(map);
+  const emptyLine = { type: 'FeatureCollection', features: [] };
+  function setTrail(pts) {
+    if (!mapReady) return;
+    const src = map.getSource('trail');
+    if (!src) return;
+    src.setData(pts.length >= 2
+      ? { type: 'Feature', geometry: { type: 'LineString', coordinates: pts } }
+      : emptyLine);
+  }
 
-  let tilesLoaded = 0, tileErrors = 0;
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 20, keepBuffer: 4,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-  }).on('tileload', () => { tilesLoaded++; })
-    .on('tileerror', () => {
-      tileErrors++;
-      if (tileErrors >= 4 && tilesLoaded === 0) {
-        notice('지도 타일을 불러오지 못했어요',
-          '외부 이미지를 막는 환경(예: 미리보기 창)에서는 지도가 보이지 않아요. 일반 브라우저나 GitHub Pages 주소에서 열어 보세요.');
-      }
-    }).addTo(map);
-
-  // ───────── 차량(화살표) ─────────
-  const arrowSvg = `
-    <svg width="44" height="44" viewBox="-22 -22 44 44" id="arrow">
-      <path d="M0 -18 L13 15 L0 8 L-13 15 Z" fill="#e8392b" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
-    </svg>`;
-  const marker = L.marker([START.lat, START.lng], {
-    icon: L.divIcon({ className: 'car-icon', html: arrowSvg, iconSize: [44, 44], iconAnchor: [22, 22] }),
-    interactive: false, keyboard: false, zIndexOffset: 1000
-  }).addTo(map);
-  const trail = L.polyline([], { color: '#e8392b', weight: 4, opacity: 0.45, lineCap: 'round' }).addTo(map);
+  map.on('load', () => {
+    mapReady = true;
+    $('notice').style.display = 'none';
+    map.addSource('trail', { type: 'geojson', data: emptyLine });
+    map.addLayer({
+      id: 'trail', type: 'line', source: 'trail',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#e8392b', 'line-width': 4, 'line-opacity': 0.5 }
+    });
+  });
+  map.on('error', () => {
+    if (!mapReady) {
+      notice('지도를 불러오지 못했어요',
+        '외부 지도 데이터를 막는 환경(예: 미리보기 창)에서는 지도가 보이지 않아요. 일반 브라우저나 GitHub Pages 주소에서 열어 보세요.');
+    }
+  });
 
   // ───────── 상태 ─────────
   const car = {
@@ -270,10 +286,10 @@
 
   // ───────── 줌 ─────────
   function zoomBy(d) {
-    const z = clamp(S.zoom + d, 16, 19);
+    const z = clamp(S.zoom + d * 0.5, 15.5, 19);
     if (z === S.zoom) return;
     S.zoom = z; saveS();
-    map.setView([car.lat, car.lng], z, { animate: false });
+    map.jumpTo({ center: [car.lng, car.lat], zoom: z });
   }
 
   // ───────── 입력 ─────────
@@ -317,8 +333,8 @@
       thr: 0, brk: 0, emg: 0, steer: 0, aLong: 0
     });
     car.gear = S.trans === 'manual' ? 0 : 1;
-    trailPts = []; trail.setLatLngs([]);
-    map.setView([START.lat, START.lng], S.zoom, { animate: false });
+    trailPts = []; setTrail([]);
+    map.jumpTo({ center: [START.lng, START.lat], zoom: S.zoom });
     if (S.trans === 'manual') toast('중립(N) 상태예요. Shift를 누른 채 E로 1단을 넣으세요');
   }
   $('reset').addEventListener('click', e => { resetCar(); e.currentTarget.blur(); });
@@ -334,7 +350,7 @@
     document.querySelectorAll('input[name=trans]').forEach(r => { r.checked = r.value === S.trans; });
     $('trail').checked = S.trail;
     $('limit').value = String(S.limitKmh);
-    if (!S.trail) { trailPts = []; trail.setLatLngs([]); }
+    if (!S.trail) { trailPts = []; setTrail([]); }
     if (S.trans === 'auto' && car.gear === 0) car.gear = 1;
   }
   document.querySelectorAll('input[name=trans]').forEach(r => r.addEventListener('change', () => {
@@ -360,6 +376,7 @@
     spd: $('spd'), gear: $('gear'), bar: $('rpmbar'), txt: $('rpmtxt'), cl: $('cl'),
     comfort: $('comfort'), cmsg: $('cmsg'), cg: $('cg')
   };
+  const arrowEl = $('arrow');
   let last = performance.now();
 
   function step(now) {
@@ -469,11 +486,9 @@
     }
 
     // 화면 반영 (줌은 그대로 두고 위치만 이동)
-    const ll = [car.lat, car.lng];
-    map.setView(ll, S.zoom, { animate: false });
-    marker.setLatLng(ll);
-    const arrow = document.getElementById('arrow');
-    if (arrow) arrow.style.transform = `rotate(${car.heading}deg)`;
+    const ll = [car.lng, car.lat];   // MapLibre는 [경도, 위도] 순서
+    map.jumpTo({ center: ll, zoom: S.zoom });
+    arrowEl.style.transform = `rotate(${car.heading}deg)`;
 
     el.spd.textContent = Math.round(av * 3.6);
     el.gear.textContent = g === -1 ? 'R' : g === 0 ? 'N' : (manual ? String(g) : 'D' + g);
@@ -487,7 +502,7 @@
     if (S.trail && ++frame % 3 === 0 && av > 0.5) {
       trailPts.push(ll);
       if (trailPts.length > 300) trailPts.shift();
-      trail.setLatLngs(trailPts);
+      setTrail(trailPts);
     }
 
     requestAnimationFrame(step);
