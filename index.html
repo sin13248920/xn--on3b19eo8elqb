@@ -1,615 +1,190 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>00일보</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>지도 운전게임</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-html {
-    background: #fff;
-}
-
-body {
-    background: #fff;
-    color: #111;
-    font-family: "Noto Sans KR", sans-serif;
-}
-
-a {
-    color: inherit;
-    text-decoration: none;
-}
-
-img {
-    display: block;
-    width: 100%;
-}
-
-.container {
-    width: min(1280px, calc(100% - 40px));
-    margin: 0 auto;
-}
-
-/* =========================
-   HEADER
-========================= */
-
-header {
-    background: #fff;
-    border-bottom: 1px solid #ddd;
-}
-
-.topbar {
-    height: 90px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.logo {
-    font-family: "Noto Serif KR", serif;
-    font-size: 42px;
-    font-weight: 700;
-    letter-spacing: -2px;
-}
-
-.nav {
-    border-top: 1px solid #eee;
-}
-
-.nav ul {
-    list-style: none;
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.nav li a {
-    display: block;
-    padding: 16px 22px;
-    font-size: 15px;
-    font-weight: 500;
-}
-
-/* 애니메이션 없이 즉시 반응 */
-.nav li a {
-    position: relative;
-}
-
-.nav li a::after {
-    content: "";
-    position: absolute;
-    left: 22px;
-    right: 22px;
-    bottom: 9px;
-    height: 2px;
-    background: #7b1e1e;
-    display: none;
-}
-
-.nav li a:hover::after {
-    display: block;
-}
-
-/* =========================
-   MAIN
-========================= */
-
-.hero {
-    padding: 50px 0;
-}
-
-.hero-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 40px;
-}
-
-.hero-image {
-    height: 500px;
-    background: #ddd;
-}
-
-.hero-title {
-    font-family: "Noto Serif KR", serif;
-    font-size: 42px;
-    font-weight: 700;
-    line-height: 1.4;
-    margin-top: 25px;
-}
-
-.hero-summary {
-    margin-top: 18px;
-    color: #555;
-    line-height: 1.8;
-}
-
-.side-news {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-.news-card {
-    padding: 22px 0;
-    border-bottom: 1px solid #e5e5e5;
-}
-
-.news-card:first-child {
-    padding-top: 0;
-}
-
-.news-card h3 {
-    font-family: "Noto Serif KR", serif;
-    font-size: 20px;
-    line-height: 1.5;
-    margin-bottom: 8px;
-}
-
-.news-card p {
-    color: #666;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-/* 호버 시 배경과 제목만 즉시 변경 */
-.news-card:hover {
-    background: #fafafa;
-}
-
-.news-card:hover h3 {
-    text-decoration: underline;
-}
-
-/* =========================
-   LATEST ARTICLES
-========================= */
-
-.latest {
-    padding: 10px 0 80px;
-}
-
-.section-title {
-    font-family: "Noto Serif KR", serif;
-    font-size: 30px;
-    font-weight: 700;
-    border-bottom: 3px solid #111;
-    padding-bottom: 11px;
-    margin-bottom: 0;
-}
-
-.article {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 30px;
-    padding: 30px 0;
-    border-bottom: 1px solid #eee;
-}
-
-.article-thumb {
-    height: 160px;
-    background: #ddd;
-}
-
-.article h2 {
-    font-family: "Noto Serif KR", serif;
-    font-size: 27px;
-    line-height: 1.5;
-    margin-bottom: 10px;
-}
-
-.article p {
-    color: #666;
-    line-height: 1.8;
-}
-
-.article:hover {
-    background: #fafafa;
-}
-
-.article:hover h2 {
-    text-decoration: underline;
-}
-
-/* =========================
-   FOOTER
-   참고 이미지의 구성:
-   왼쪽 로고 / 가운데 회사 정보 / 오른쪽 관계사
-========================= */
-
-footer {
-    margin-top: 20px;
-    border-top: 1px solid #e5e5e5;
-    background: #fff;
-}
-
-.footer-main {
-    width: min(1820px, calc(100% - 80px));
-    min-height: 180px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 290px 1fr 260px;
-    column-gap: 40px;
-    align-items: center;
-    padding: 30px 0;
-}
-
-/* 푸터 로고 */
-.footer-logo {
-    display: flex;
-    align-items: center;
-    color: #777;
-}
-
-.footer-logo-text {
-    line-height: 1;
-}
-
-.footer-logo-text .english {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 4px;
-    color: #888;
-}
-
-.footer-logo-text .korean {
-    display: block;
-    font-family: "Noto Serif KR", serif;
-    font-size: 30px;
-    font-weight: 700;
-    letter-spacing: -2px;
-    color: #666;
-}
-
-/* 회사 정보 */
-.footer-info {
-    color: #777;
-    font-size: 15px;
-    line-height: 1.75;
-}
-
-.footer-info .info-row {
-    margin-bottom: 2px;
-}
-
-.footer-info .label {
-    color: #666;
-    font-weight: 600;
-}
-
-/* 아직 만들지 않는 개인정보처리방침/기사제보 등은 넣지 않음 */
-
-/* 관계사 */
-.footer-related {
-    align-self: center;
-    justify-self: end;
-    width: 230px;
-}
-
-.footer-related-title {
-    width: 230px;
-    border: 1px solid #ddd;
-    background: #fff;
-    padding: 14px 16px;
-    font-family: "Noto Sans KR", sans-serif;
-    font-size: 16px;
-    color: #777;
-    text-align: left;
-    cursor: pointer;
-    position: relative;
-}
-
-.footer-related-title::after {
-    content: "⌄";
-    position: absolute;
-    right: 15px;
-    top: 10px;
-    font-size: 18px;
-    color: #ccc;
-}
-
-.footer-related.open .footer-related-title::after {
-    content: "⌃";
-}
-
-.footer-related-list {
-    width: 230px;
-    border: 1px solid #ddd;
-    border-top: 0;
-    display: none;
-}
-
-.footer-related.open .footer-related-list {
-    display: block;
-}
-
-.footer-related-list a {
-    display: block;
-    padding: 12px 16px;
-    font-size: 14px;
-    color: #666;
-}
-
-.footer-related-list a:hover {
-    background: #f5f5f5;
-    color: #111;
-}
-
-/* 저작권 */
-.footer-bottom {
-    border-top: 1px solid #eee;
-    width: min(1820px, calc(100% - 80px));
-    margin: 0 auto;
-    padding: 15px 0 20px;
-    font-size: 12px;
-    color: #999;
-}
-
-/* =========================
-   RESPONSIVE
-========================= */
-
-@media (max-width: 1000px) {
-    .hero-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .hero-image {
-        height: 420px;
-    }
-
-    .footer-main {
-        width: min(1280px, calc(100% - 40px));
-        grid-template-columns: 1fr;
-        row-gap: 25px;
-    }
-
-    .footer-related {
-        justify-self: start;
-    }
-
-    .footer-bottom {
-        width: min(1280px, calc(100% - 40px));
-    }
-}
-
-@media (max-width: 700px) {
-    .container {
-        width: calc(100% - 28px);
-    }
-
-    .topbar {
-        height: 75px;
-    }
-
-    .logo {
-        font-size: 34px;
-    }
-
-    .nav li a {
-        padding: 12px 14px;
-        font-size: 14px;
-    }
-
-    .hero {
-        padding: 30px 0;
-    }
-
-    .hero-image {
-        height: 260px;
-    }
-
-    .hero-title {
-        font-size: 30px;
-    }
-
-    .article {
-        grid-template-columns: 1fr;
-        gap: 18px;
-    }
-
-    .article-thumb {
-        height: 200px;
-    }
-
-    .article h2 {
-        font-size: 22px;
-    }
-
-    .footer-main,
-    .footer-bottom {
-        width: calc(100% - 28px);
-    }
-}
+  :root {
+    --ink: #1d2433;
+    --paper: rgba(255, 255, 255, 0.92);
+    --car: #e8392b;
+    --line: #d5d9e2;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: var(--ink); }
+  #map { position: absolute; inset: 0; background: #e9ecf1; }
+
+  .hud { position: absolute; z-index: 1000; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; backdrop-filter: blur(6px); }
+  #speedo { left: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); min-width: 118px; }
+  #speedo .num { font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  #speedo .unit { font-size: 13px; margin-left: 4px; opacity: .65; }
+  #help { right: 14px; top: calc(14px + env(safe-area-inset-top, 0px)); font-size: 13px; line-height: 1.7; max-width: 240px; }
+  #help b { font-weight: 600; }
+  #help button { font: inherit; margin-top: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; }
+  #help button:focus-visible, .pad button:focus-visible { outline: 2px solid var(--car); outline-offset: 2px; }
+
+  .pad { position: absolute; z-index: 1000; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: none; gap: 10px; }
+  .pad.left { left: 150px; }
+  .pad.right { right: 14px; }
+  .pad button { width: 64px; height: 64px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); font-size: 22px; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .pad button.on { background: var(--car); color: #fff; border-color: var(--car); }
+  @media (pointer: coarse) { .pad { display: flex; } #help .keys { display: none; } }
+
+  .car-icon svg { display: block; transition: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
 </style>
 </head>
-
 <body>
+<div id="map"></div>
 
-<header>
-    <div class="topbar">
-        <div class="logo">00일보</div>
-    </div>
+<div id="speedo" class="hud"><span class="num" id="spd">0</span><span class="unit">km/h</span></div>
 
-    <nav class="nav">
-        <ul>
-            <li><a href="#">홈</a></li>
-            <li><a href="#">사건/사고</a></li>
-            <li><a href="#">정보/소식</a></li>
-            <li><a href="#">우리동네</a></li>
-            <li><a href="#">가족소식</a></li>
-            <li><a href="#">학교소식</a></li>
-            <li><a href="#">행사안내</a></li>
-            <li><a href="#">사진관</a></li>
-            <li><a href="#">공지사항</a></li>
-        </ul>
-    </nav>
-</header>
+<div id="help" class="hud">
+  <div class="keys"><b>방향키 / WASD</b> 가속·후진·조향<br><b>스페이스</b> 브레이크<br></div>
+  <b>R</b> 시작 위치로 복귀
+  <br><button id="reset" type="button">처음으로</button>
+</div>
 
-<main class="container">
+<div class="pad left">
+  <button data-k="left" aria-label="왼쪽">◀</button>
+  <button data-k="right" aria-label="오른쪽">▶</button>
+</div>
+<div class="pad right">
+  <button data-k="brake" aria-label="브레이크">■</button>
+  <button data-k="up" aria-label="가속">▲</button>
+</div>
 
-    <section class="hero">
-        <div class="hero-grid">
-
-            <div>
-                <div class="hero-image"></div>
-
-                <h1 class="hero-title">
-                    메인 헤드라인 기사 제목이 들어갑니다
-                </h1>
-
-                <p class="hero-summary">
-                    이곳에는 가장 중요한 소식의 요약문이 들어갑니다.
-                    사진과 함께 오늘의 대표적인 소식을 전하는 영역입니다.
-                </p>
-            </div>
-
-            <div class="side-news">
-
-                <article class="news-card">
-                    <h3>주요 소식의 제목이 들어갑니다</h3>
-                    <p>주요 소식에 대한 간단한 설명입니다.</p>
-                </article>
-
-                <article class="news-card">
-                    <h3>우리동네에서 전해진 새로운 소식</h3>
-                    <p>동네에서 일어난 소식을 간단하게 전합니다.</p>
-                </article>
-
-                <article class="news-card">
-                    <h3>가족들의 새로운 이야기가 전해졌습니다</h3>
-                    <p>가족과 관련된 소식을 소개하는 영역입니다.</p>
-                </article>
-
-                <article class="news-card">
-                    <h3>이번 주 주요 일정 안내</h3>
-                    <p>앞으로 있을 행사와 일정을 알려드립니다.</p>
-                </article>
-
-            </div>
-
-        </div>
-    </section>
-
-    <section class="latest">
-        <h2 class="section-title">최근 기사</h2>
-
-        <article class="article">
-            <div class="article-thumb"></div>
-            <div>
-                <h2>최근 기사 제목이 들어갑니다</h2>
-                <p>
-                    기사에 대한 간단한 요약문입니다.
-                    실제 기사를 작성할 때 이 부분에 내용을 입력하면 됩니다.
-                </p>
-            </div>
-        </article>
-
-        <article class="article">
-            <div class="article-thumb"></div>
-            <div>
-                <h2>새로운 소식이 전해졌습니다</h2>
-                <p>
-                    새로운 소식의 내용을 간단하게 소개하는 영역입니다.
-                </p>
-            </div>
-        </article>
-
-        <article class="article">
-            <div class="article-thumb"></div>
-            <div>
-                <h2>이번 주 우리동네 주요 소식</h2>
-                <p>
-                    우리동네에서 있었던 주요 소식을 전합니다.
-                </p>
-            </div>
-        </article>
-    </section>
-
-</main>
-
-<footer>
-
-    <div class="footer-main">
-
-        <div class="footer-logo">
-            <div class="footer-logo-text">
-                <span class="english">Local Media</span>
-                <span class="korean">00일보</span>
-            </div>
-        </div>
-
-        <div class="footer-info">
-            <div class="info-row">
-                <span class="label">주소:</span>
-                서울특별시 ○○구 ○○대로 00, 4층
-                <span class="label">대표번호</span> 02)0000-0000
-            </div>
-
-            <div class="info-row">
-                <span class="label">인터넷신문등록번호:</span>
-                서울 아 00000
-                <span class="label">등록(발행)일자:</span>
-                2026년 09월 04일
-            </div>
-
-            <div class="info-row">
-                <span class="label">발행인:</span>
-                홍길동
-                <span class="label">| 편집인:</span>
-                김○○
-            </div>
-
-            <div class="info-row">
-                Copyright 00일보 All rights reserved.
-            </div>
-        </div>
-
-        <div class="footer-related">
-            <button class="footer-related-title" type="button" aria-expanded="false">
-                관계사
-            </button>
-
-            <div class="footer-related-list">
-                <a href="#" target="_blank" rel="noopener">
-                    서오건축
-                </a>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="footer-bottom">
-        00일보는 독자 여러분의 소중한 소식을 전합니다.
-    </div>
-
-</footer>
-
-
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const related = document.querySelector(".footer-related");
-    const button = document.querySelector(".footer-related-title");
+(() => {
+  // ───────── 설정 ─────────
+  const START = { lat: 37.5665, lng: 126.9780, heading: 0 };   // 서울 시청 근처
+  const CFG = {
+    accel: 14,        // 가속 (m/s²)
+    brake: 34,        // 브레이크 (m/s²)
+    drag: 0.35,       // 자연 감속 비율
+    maxFwd: 55,       // 최고 속도 (m/s, 약 198km/h)
+    maxRev: 8,        // 후진 최고 속도
+    turnRate: 130,    // 최대 조향 속도 (도/초)
+    zoomNear: 17.5,   // 정지 시 줌
+    zoomFar: 15.6     // 최고속도 시 줌
+  };
 
-    button.addEventListener("click", function () {
-        const isOpen = related.classList.toggle("open");
-        button.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    });
-});
+  // ───────── 지도 (API 키 불필요) ─────────
+  const map = L.map('map', {
+    zoomControl: false, zoomSnap: 0, zoomAnimation: false,
+    dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
+    boxZoom: false, keyboard: false, touchZoom: false, attributionControl: true
+  }).setView([START.lat, START.lng], CFG.zoomNear);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd', maxZoom: 20,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  }).addTo(map);
+
+  // ───────── 차량(화살표) ─────────
+  const arrowSvg = `
+    <svg width="44" height="44" viewBox="-22 -22 44 44" id="arrow">
+      <path d="M0 -18 L13 15 L0 8 L-13 15 Z" fill="#e8392b" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+    </svg>`;
+  const marker = L.marker([START.lat, START.lng], {
+    icon: L.divIcon({ className: 'car-icon', html: arrowSvg, iconSize: [44, 44], iconAnchor: [22, 22] }),
+    interactive: false, keyboard: false, zIndexOffset: 1000
+  }).addTo(map);
+  const arrowEl = () => document.getElementById('arrow');
+
+  const trail = L.polyline([], { color: '#e8392b', weight: 4, opacity: 0.45, lineCap: 'round' }).addTo(map);
+
+  // ───────── 상태 ─────────
+  const car = { lat: START.lat, lng: START.lng, heading: START.heading, v: 0 };
+  const keys = { up: false, down: false, left: false, right: false, brake: false };
+  let zoom = CFG.zoomNear;
+  let trailPts = [];
+  let frame = 0;
+
+  // ───────── 입력 ─────────
+  const keyMap = {
+    ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
+    ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Space: 'brake'
+  };
+  addEventListener('keydown', e => {
+    if (e.code === 'KeyR') return resetCar();
+    const k = keyMap[e.code];
+    if (k) { keys[k] = true; e.preventDefault(); }
+  });
+  addEventListener('keyup', e => { const k = keyMap[e.code]; if (k) { keys[k] = false; e.preventDefault(); } });
+  addEventListener('blur', () => Object.keys(keys).forEach(k => keys[k] = false));
+
+  document.querySelectorAll('.pad button').forEach(btn => {
+    const k = btn.dataset.k;
+    const on = e => { keys[k] = true; btn.classList.add('on'); e.preventDefault(); };
+    const off = e => { keys[k] = false; btn.classList.remove('on'); e.preventDefault(); };
+    btn.addEventListener('pointerdown', on);
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => btn.addEventListener(t, off));
+  });
+
+  function resetCar() {
+    Object.assign(car, { lat: START.lat, lng: START.lng, heading: START.heading, v: 0 });
+    trailPts = []; trail.setLatLngs([]);
+  }
+  document.getElementById('reset').addEventListener('click', resetCar);
+
+  // ───────── 게임 루프 ─────────
+  const M_PER_DEG = 111320;
+  const spdEl = document.getElementById('spd');
+  let last = performance.now();
+
+  function step(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    // 가속 / 브레이크 / 자연 감속
+    if (keys.up) car.v += CFG.accel * dt;
+    if (keys.down) car.v -= (car.v > 0 ? CFG.brake : CFG.accel * 0.6) * dt;
+    if (keys.brake) {
+      const dv = CFG.brake * 1.2 * dt;
+      car.v = Math.abs(car.v) <= dv ? 0 : car.v - Math.sign(car.v) * dv;
+    }
+    car.v -= car.v * CFG.drag * dt;
+    if (!keys.up && !keys.down && Math.abs(car.v) < 0.15) car.v = 0;
+    car.v = Math.max(-CFG.maxRev, Math.min(CFG.maxFwd, car.v));
+
+    // 조향: 멈춰 있으면 회전 불가, 고속일수록 둔감
+    const steer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+    const grip = Math.min(1, Math.abs(car.v) / 7) / (1 + Math.abs(car.v) / 60);
+    car.heading += steer * CFG.turnRate * grip * Math.sign(car.v || 1) * dt;
+    car.heading = (car.heading % 360 + 360) % 360;
+
+    // 위치 갱신 (미터 → 위경도)
+    const rad = car.heading * Math.PI / 180;
+    const dist = car.v * dt;
+    car.lat += (dist * Math.cos(rad)) / M_PER_DEG;
+    car.lng += (dist * Math.sin(rad)) / (M_PER_DEG * Math.cos(car.lat * Math.PI / 180));
+
+    // 줌: 빠를수록 멀리 보이게
+    const targetZoom = CFG.zoomNear - (CFG.zoomNear - CFG.zoomFar) * Math.min(1, Math.abs(car.v) / CFG.maxFwd);
+    zoom += (targetZoom - zoom) * Math.min(1, dt * 2.5);
+
+    // 화면 반영
+    const ll = [car.lat, car.lng];
+    map.setView(ll, zoom, { animate: false });
+    marker.setLatLng(ll);
+    const el = arrowEl();
+    if (el) el.style.transform = `rotate(${car.heading}deg)`;
+    spdEl.textContent = Math.round(Math.abs(car.v) * 3.6);
+
+    // 궤적 (매 3프레임, 최근 250점)
+    if (++frame % 3 === 0 && Math.abs(car.v) > 0.5) {
+      trailPts.push(ll);
+      if (trailPts.length > 250) trailPts.shift();
+      trail.setLatLngs(trailPts);
+    }
+
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+})();
 </script>
-
 </body>
 </html>
