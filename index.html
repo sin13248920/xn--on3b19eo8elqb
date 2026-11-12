@@ -4,84 +4,190 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>지도 운전게임</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
   :root {
     --ink: #1d2433;
-    --paper: rgba(255, 255, 255, 0.92);
+    --paper: rgba(255, 255, 255, 0.93);
     --car: #e8392b;
     --line: #d5d9e2;
+    --mute: #6b7385;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: var(--ink); }
   #map { position: absolute; inset: 0; background: #e9ecf1; }
 
   .hud { position: absolute; z-index: 1000; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; backdrop-filter: blur(6px); }
-  #speedo { left: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); min-width: 118px; }
-  #speedo .num { font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-  #speedo .unit { font-size: 13px; margin-left: 4px; opacity: .65; }
-  #help { right: 14px; top: calc(14px + env(safe-area-inset-top, 0px)); font-size: 13px; line-height: 1.7; max-width: 240px; }
+  .hud[hidden] { display: none; }
+
+  /* 계기판 */
+  #dash { left: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: 196px; }
+  #dash .row { display: flex; align-items: baseline; gap: 6px; }
+  #dash .num { font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
+  #dash .unit { font-size: 13px; color: var(--mute); }
+  #dash .gear { margin-left: auto; font-size: 26px; font-weight: 700; min-width: 2.2ch; text-align: right; color: var(--car); }
+  .rpm { height: 6px; border-radius: 3px; background: #e6e9ef; margin: 8px 0 5px; overflow: hidden; }
+  .rpm i { display: block; height: 100%; width: 0; background: #3b82f6; }
+  .rpm i.hot { background: var(--car); }
+  #dash .sub { display: flex; justify-content: space-between; font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; }
+  #cl { visibility: hidden; font-weight: 600; }
+  body.manual #cl { visibility: visible; opacity: .35; }
+  body.manual #cl.on { opacity: 1; color: var(--car); }
+
+  /* 도움말 / 설정 */
+  #help { right: 14px; top: calc(14px + env(safe-area-inset-top, 0px)); font-size: 13px; line-height: 1.7; width: 232px; }
   #help b { font-weight: 600; }
-  #help button { font: inherit; margin-top: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; }
-  #help button:focus-visible, .pad button:focus-visible { outline: 2px solid var(--car); outline-offset: 2px; }
+  #help .m-only { display: none; }
+  body.manual #help .m-only { display: block; }
+  #help button, #panel select { font: inherit; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; }
+  #help .btns { display: flex; gap: 6px; margin-top: 6px; }
+  #panel { right: 14px; top: calc(190px + env(safe-area-inset-top, 0px)); width: 232px; font-size: 14px; display: grid; gap: 12px; }
+  body.manual #panel { top: calc(245px + env(safe-area-inset-top, 0px)); }
+  #panel fieldset { margin: 0; padding: 0; border: 0; display: flex; gap: 14px; align-items: center; }
+  #panel legend { padding: 0; font-weight: 600; margin-bottom: 4px; float: left; margin-right: 12px; }
+  #panel label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  #panel .line { display: flex; align-items: center; justify-content: space-between; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--car); outline-offset: 2px; }
 
+  /* 알림 */
+  #toast { position: absolute; z-index: 1100; left: 50%; top: calc(16px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: rgba(29,36,51,.92); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 80vw; text-align: center; }
+  #toast.show { opacity: 1; }
+  #notice { position: absolute; z-index: 1200; left: 50%; top: 50%; transform: translate(-50%,-50%); width: min(420px, 88vw); background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; line-height: 1.6; font-size: 14px; display: none; }
+  #notice strong { display: block; font-size: 16px; margin-bottom: 6px; }
+
+  /* 터치 버튼 */
   .pad { position: absolute; z-index: 1000; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: none; gap: 10px; }
-  .pad.left { left: 150px; }
+  .pad.left { left: 14px; }
   .pad.right { right: 14px; }
-  .pad button { width: 64px; height: 64px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); font-size: 22px; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .pad.mid { right: 14px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+  .pad button { min-width: 64px; height: 64px; padding: 0 8px; border-radius: 32px; border: 1px solid var(--line); background: var(--paper); font-size: 20px; touch-action: none; user-select: none; -webkit-user-select: none; color: var(--ink); }
+  .pad.mid button { height: 48px; min-width: 56px; font-size: 15px; border-radius: 24px; }
   .pad button.on { background: var(--car); color: #fff; border-color: var(--car); }
-  @media (pointer: coarse) { .pad { display: flex; } #help .keys { display: none; } }
+  @media (pointer: coarse) {
+    .pad.left, .pad.right { display: flex; bottom: calc(34px + env(safe-area-inset-bottom, 0px)); }
+    body.manual .pad.mid { display: flex; bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
+    #dash { bottom: auto; top: calc(14px + env(safe-area-inset-top, 0px)); }
+    #help .keys { display: none; }
+    #help { width: auto; padding: 6px 10px; }
+    #panel { top: calc(58px + env(safe-area-inset-top, 0px)); }
+    body.manual #panel { top: calc(58px + env(safe-area-inset-top, 0px)); }
+  }
 
-  .car-icon svg { display: block; transition: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+  .car-icon svg { display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
 </style>
 </head>
 <body>
 <div id="map"></div>
 
-<div id="speedo" class="hud"><span class="num" id="spd">0</span><span class="unit">km/h</span></div>
+<div id="dash" class="hud" aria-live="off">
+  <div class="row"><span class="num" id="spd">0</span><span class="unit">km/h</span><span class="gear" id="gear">D1</span></div>
+  <div class="rpm"><i id="rpmbar"></i></div>
+  <div class="sub"><span id="rpmtxt">900 rpm</span><span id="cl">클러치</span></div>
+</div>
 
 <div id="help" class="hud">
-  <div class="keys"><b>방향키 / WASD</b> 가속·후진·조향<br><b>스페이스</b> 브레이크<br></div>
-  <b>R</b> 시작 위치로 복귀
-  <br><button id="reset" type="button">처음으로</button>
+  <div class="keys">
+    <b>W/↑</b> 가속 &nbsp; <b>S/↓</b> 브레이크·후진<br>
+    <b>A/D, ←/→</b> 조향 &nbsp; <b>Space</b> 핸드브레이크<br>
+    <div class="m-only"><b>Shift</b> 클러치 &nbsp; <b>E/Q</b> 기어 업/다운<br></div>
+    <b>R</b> 시작 위치로
+  </div>
+  <div class="btns"><button id="open-settings" type="button">설정</button><button id="reset" type="button">처음으로</button></div>
+</div>
+
+<div id="panel" class="hud" hidden>
+  <fieldset>
+    <legend>변속</legend>
+    <label><input type="radio" name="trans" value="auto"> 자동</label>
+    <label><input type="radio" name="trans" value="manual"> 수동</label>
+  </fieldset>
+  <label><input type="checkbox" id="trail"> 주행 궤적 남기기</label>
+  <div class="line"><span>최고속도</span>
+    <select id="limit" aria-label="최고속도">
+      <option value="40">40 km/h</option>
+      <option value="60">60 km/h</option>
+      <option value="80">80 km/h</option>
+      <option value="100">100 km/h</option>
+      <option value="120">120 km/h</option>
+    </select>
+  </div>
 </div>
 
 <div class="pad left">
   <button data-k="left" aria-label="왼쪽">◀</button>
   <button data-k="right" aria-label="오른쪽">▶</button>
 </div>
+<div class="pad mid">
+  <button data-k="clutch" aria-label="클러치">클러치</button>
+  <button data-act="-1" aria-label="기어 다운">Q</button>
+  <button data-act="1" aria-label="기어 업">E</button>
+</div>
 <div class="pad right">
-  <button data-k="brake" aria-label="브레이크">■</button>
+  <button data-k="down" aria-label="브레이크">■</button>
   <button data-k="up" aria-label="가속">▲</button>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="toast" role="status"></div>
+<div id="notice"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 (() => {
-  // ───────── 설정 ─────────
-  const START = { lat: 37.5665, lng: 126.9780, heading: 0 };   // 서울 시청 근처
+  const $ = id => document.getElementById(id);
+  const notice = (title, body) => {
+    const n = $('notice');
+    n.innerHTML = '<strong></strong><span></span>';
+    n.firstChild.textContent = title;
+    n.lastChild.textContent = body;
+    n.style.display = 'block';
+  };
+
+  if (typeof L === 'undefined') {
+    notice('지도 라이브러리를 불러오지 못했어요',
+      '인터넷 연결을 확인하거나, 미리보기 창이 아닌 일반 브라우저(또는 GitHub Pages 주소)에서 열어 보세요.');
+    return;
+  }
+
+  // ───────── 설정 (브라우저에 저장) ─────────
+  const KEY = 'map-drive-settings';
+  const loadS = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+  const saveS = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+  const S = Object.assign({ trans: 'auto', trail: true, limitKmh: 80 }, loadS());
+
+  // ───────── 상수 ─────────
+  const START = { lat: 37.6136, lng: 127.1019, heading: 0 };   // 서울 중랑차고지
+  const GEAR_FRAC = [0, 0.20, 0.38, 0.56, 0.73, 0.88, 1.0];    // 기어별 최고속도 비율 (최고속도 × 비율)
+  const GEAR_ACC  = [0, 7.5, 5.6, 4.3, 3.4, 2.7, 2.1];         // 기어별 최대 가속도 (m/s²)
+  const IDLE = 900, REDLINE = 7000;
   const CFG = {
-    accel: 14,        // 가속 (m/s²)
-    brake: 34,        // 브레이크 (m/s²)
-    drag: 0.35,       // 자연 감속 비율
-    maxFwd: 55,       // 최고 속도 (m/s, 약 198km/h)
-    maxRev: 8,        // 후진 최고 속도
-    turnRate: 130,    // 최대 조향 속도 (도/초)
-    zoomNear: 17.5,   // 정지 시 줌
-    zoomFar: 15.6     // 최고속도 시 줌
+    brake: 9,          // 풋브레이크 (m/s²)
+    handbrake: 14,     // 핸드브레이크
+    turnRate: 95,      // 최대 조향 속도 (도/초)
+    zoomNear: 18.4,    // 정지 시 줌
+    zoomFar: 17.2      // 최고속도 시 줌
   };
 
   // ───────── 지도 (API 키 불필요) ─────────
   const map = L.map('map', {
-    zoomControl: false, zoomSnap: 0, zoomAnimation: false,
+    zoomControl: false, zoomSnap: 0, zoomAnimation: false, fadeAnimation: false,
     dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
-    boxZoom: false, keyboard: false, touchZoom: false, attributionControl: true
+    boxZoom: false, keyboard: false, touchZoom: false, attributionControl: false
   }).setView([START.lat, START.lng], CFG.zoomNear);
 
+  L.control.attribution({ position: 'bottomright', prefix: false }).addTo(map);
+
+  let tilesLoaded = 0, tileErrors = 0;
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     subdomains: 'abcd', maxZoom: 20,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-  }).addTo(map);
+  }).on('tileload', () => { tilesLoaded++; })
+    .on('tileerror', () => {
+      tileErrors++;
+      if (tileErrors >= 4 && tilesLoaded === 0) {
+        notice('지도 타일을 불러오지 못했어요',
+          '외부 이미지를 막는 환경(예: 미리보기 창)에서는 지도가 보이지 않아요. 일반 브라우저나 GitHub Pages 주소에서 열어 보세요.');
+      }
+    }).addTo(map);
 
   // ───────── 차량(화살표) ─────────
   const arrowSvg = `
@@ -92,68 +198,179 @@
     icon: L.divIcon({ className: 'car-icon', html: arrowSvg, iconSize: [44, 44], iconAnchor: [22, 22] }),
     interactive: false, keyboard: false, zIndexOffset: 1000
   }).addTo(map);
-  const arrowEl = () => document.getElementById('arrow');
-
   const trail = L.polyline([], { color: '#e8392b', weight: 4, opacity: 0.45, lineCap: 'round' }).addTo(map);
 
   // ───────── 상태 ─────────
-  const car = { lat: START.lat, lng: START.lng, heading: START.heading, v: 0 };
-  const keys = { up: false, down: false, left: false, right: false, brake: false };
+  const car = { lat: START.lat, lng: START.lng, heading: START.heading, v: 0, gear: 1, rpm: IDLE };
+  const keys = { up: false, down: false, left: false, right: false, hand: false, clutch: false };
   let zoom = CFG.zoomNear;
   let trailPts = [];
   let frame = 0;
 
+  // ───────── 알림 ─────────
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  // ───────── 변속 ─────────
+  const GEAR_SEQ = [-1, 0, 1, 2, 3, 4, 5, 6];   // R, N, 1~6
+  function shiftGear(d) {
+    if (S.trans !== 'manual') return;
+    if (!keys.clutch) { toast('클러치(Shift)를 누른 채 변속하세요'); return; }
+    let i = GEAR_SEQ.indexOf(car.gear) + d;
+    i = Math.max(0, Math.min(GEAR_SEQ.length - 1, i));
+    if (GEAR_SEQ[i] === -1 && Math.abs(car.v) > 2) { toast('정지한 뒤에 후진 기어를 넣으세요'); return; }
+    car.gear = GEAR_SEQ[i];
+  }
+
   // ───────── 입력 ─────────
   const keyMap = {
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
-    ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Space: 'brake'
+    ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+    Space: 'hand', ShiftLeft: 'clutch', ShiftRight: 'clutch'
   };
+  const inForm = el => ['INPUT', 'SELECT', 'TEXTAREA'].includes(el && el.tagName);
+
   addEventListener('keydown', e => {
-    if (e.code === 'KeyR') return resetCar();
+    if (inForm(e.target)) return;
+    if (e.code === 'KeyR') { resetCar(); return; }
+    if (e.code === 'KeyE' || e.code === 'KeyQ') { if (!e.repeat) shiftGear(e.code === 'KeyE' ? 1 : -1); return; }
     const k = keyMap[e.code];
     if (k) { keys[k] = true; e.preventDefault(); }
   });
-  addEventListener('keyup', e => { const k = keyMap[e.code]; if (k) { keys[k] = false; e.preventDefault(); } });
+  addEventListener('keyup', e => {
+    if (inForm(e.target)) return;
+    const k = keyMap[e.code];
+    if (k) { keys[k] = false; e.preventDefault(); }
+  });
   addEventListener('blur', () => Object.keys(keys).forEach(k => keys[k] = false));
 
   document.querySelectorAll('.pad button').forEach(btn => {
-    const k = btn.dataset.k;
-    const on = e => { keys[k] = true; btn.classList.add('on'); e.preventDefault(); };
-    const off = e => { keys[k] = false; btn.classList.remove('on'); e.preventDefault(); };
-    btn.addEventListener('pointerdown', on);
-    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => btn.addEventListener(t, off));
+    const k = btn.dataset.k, act = btn.dataset.act;
+    if (k) {
+      const on = e => { keys[k] = true; btn.classList.add('on'); e.preventDefault(); };
+      const off = e => { keys[k] = false; btn.classList.remove('on'); e.preventDefault(); };
+      btn.addEventListener('pointerdown', on);
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => btn.addEventListener(t, off));
+    } else if (act) {
+      btn.addEventListener('pointerdown', e => { shiftGear(Number(act)); e.preventDefault(); });
+    }
   });
 
   function resetCar() {
-    Object.assign(car, { lat: START.lat, lng: START.lng, heading: START.heading, v: 0 });
+    Object.assign(car, { lat: START.lat, lng: START.lng, heading: START.heading, v: 0, rpm: IDLE });
+    car.gear = S.trans === 'manual' ? 0 : 1;
     trailPts = []; trail.setLatLngs([]);
+    if (S.trans === 'manual') toast('중립(N) 상태예요. Shift를 누른 채 E로 1단을 넣으세요');
   }
-  document.getElementById('reset').addEventListener('click', resetCar);
+  $('reset').addEventListener('click', e => { resetCar(); e.currentTarget.blur(); });
 
-  // ───────── 게임 루프 ─────────
+  // ───────── 설정 UI ─────────
+  const panel = $('panel');
+  $('open-settings').addEventListener('click', e => { panel.hidden = !panel.hidden; e.currentTarget.blur(); });
+
+  function applySettings() {
+    document.body.classList.toggle('manual', S.trans === 'manual');
+    document.querySelectorAll('input[name=trans]').forEach(r => { r.checked = r.value === S.trans; });
+    $('trail').checked = S.trail;
+    $('limit').value = String(S.limitKmh);
+    if (!S.trail) { trailPts = []; trail.setLatLngs([]); }
+    if (S.trans === 'auto' && car.gear === 0) car.gear = 1;
+  }
+  document.querySelectorAll('input[name=trans]').forEach(r => r.addEventListener('change', () => {
+    S.trans = r.value; applySettings(); saveS(); r.blur();
+    toast(S.trans === 'manual' ? '수동: Shift를 누른 채 E/Q로 변속' : '자동 변속');
+  }));
+  $('trail').addEventListener('change', e => { S.trail = e.target.checked; applySettings(); saveS(); e.target.blur(); });
+  $('limit').addEventListener('change', e => { S.limitKmh = Number(e.target.value); saveS(); e.target.blur(); });
+
+  car.gear = S.trans === 'manual' ? 0 : 1;
+  applySettings();
+
+  // ───────── 물리 ─────────
+  function torque(frac) {
+    if (frac < 0.15) return 0.35 + 0.4 * (frac / 0.15);
+    if (frac < 0.5) return 0.75 + 0.25 * ((frac - 0.15) / 0.35);
+    if (frac < 0.9) return 1;
+    return Math.max(0, 1 - 0.4 * ((frac - 0.9) / 0.1));
+  }
+
   const M_PER_DEG = 111320;
-  const spdEl = document.getElementById('spd');
+  const el = { spd: $('spd'), gear: $('gear'), bar: $('rpmbar'), txt: $('rpmtxt'), cl: $('cl') };
   let last = performance.now();
 
   function step(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
 
-    // 가속 / 브레이크 / 자연 감속
-    if (keys.up) car.v += CFG.accel * dt;
-    if (keys.down) car.v -= (car.v > 0 ? CFG.brake : CFG.accel * 0.6) * dt;
-    if (keys.brake) {
-      const dv = CFG.brake * 1.2 * dt;
-      car.v = Math.abs(car.v) <= dv ? 0 : car.v - Math.sign(car.v) * dv;
+    const limit = S.limitKmh / 3.6;
+    const gearMax = g => (g === -1 ? Math.min(5, limit * 0.4) : limit * GEAR_FRAC[g]);
+    const manual = S.trans === 'manual';
+
+    // 입력 해석 + 자동 변속
+    let throttle = 0, brake = 0;
+    if (manual) {
+      throttle = keys.up ? 1 : 0;
+      brake = keys.down ? 1 : 0;
+    } else {
+      if (car.gear >= 1 && keys.down && !keys.up && car.v < 0.4) car.gear = -1;
+      else if (car.gear === -1 && keys.up && !keys.down && car.v > -0.4) car.gear = 1;
+      if (car.gear === -1) { throttle = keys.down ? 1 : 0; brake = keys.up ? 1 : 0; }
+      else { throttle = keys.up ? 1 : 0; brake = keys.down ? 1 : 0; }
+      if (car.gear >= 1) {
+        if (car.gear < 6 && car.v > gearMax(car.gear) * 0.9) car.gear++;
+        else if (car.gear > 1 && car.v < gearMax(car.gear - 1) * 0.55) car.gear--;
+      }
     }
-    car.v -= car.v * CFG.drag * dt;
-    if (!keys.up && !keys.down && Math.abs(car.v) < 0.15) car.v = 0;
-    car.v = Math.max(-CFG.maxRev, Math.min(CFG.maxFwd, car.v));
+
+    // 구동
+    const g = car.gear;
+    const engaged = g !== 0 && !(manual && keys.clutch);
+    let gm = 1;
+    if (g !== 0) gm = gearMax(g);
+    if (engaged) {
+      const dir = g === -1 ? -1 : 1;
+      const along = car.v * dir;
+      const frac = Math.max(0, along) / gm;
+      if (throttle) {
+        if (along < gm) {
+          let tq = torque(frac);
+          if (!manual && frac < 0.5) tq = Math.max(tq, 0.85);
+          car.v += dir * (g === -1 ? 3 : GEAR_ACC[g]) * tq * dt;
+        }
+      } else {
+        const eb = (manual ? 1.4 : 0.5) * Math.min(1, frac);
+        car.v -= Math.sign(car.v) * Math.min(Math.abs(car.v), eb * dt);
+      }
+      if (along > gm) {
+        // 기어 한계 초과(과회전): 엔진 브레이크로 빠르게 감속
+        car.v -= dir * Math.min(along - gm, (6 + 20 * (along / gm - 1)) * dt);
+      }
+    }
+
+    // 구름 저항 / 브레이크
+    const roll = (0.12 * Math.abs(car.v) + 0.5) * dt;
+    car.v -= Math.sign(car.v) * Math.min(Math.abs(car.v), roll);
+    const bf = (brake ? CFG.brake : 0) + (keys.hand ? CFG.handbrake : 0);
+    if (bf) car.v -= Math.sign(car.v) * Math.min(Math.abs(car.v), bf * dt);
+    if (Math.abs(car.v) < 0.03 && !throttle) car.v = 0;
+
+    // 엔진 회전수
+    let rpmTarget;
+    if (engaged) rpmTarget = IDLE + (REDLINE - IDLE) * Math.min(1, Math.abs(car.v) / gm);
+    else rpmTarget = IDLE + (REDLINE - IDLE) * throttle * 0.85;
+    car.rpm += (rpmTarget - car.rpm) * Math.min(1, dt * (engaged ? 10 : 6));
 
     // 조향: 멈춰 있으면 회전 불가, 고속일수록 둔감
     const steer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-    const grip = Math.min(1, Math.abs(car.v) / 7) / (1 + Math.abs(car.v) / 60);
-    car.heading += steer * CFG.turnRate * grip * Math.sign(car.v || 1) * dt;
+    const av = Math.abs(car.v);
+    const grip = Math.min(1, av / 5) / (1 + av / 18);
+    car.heading += steer * CFG.turnRate * grip * Math.sign(car.v) * dt;
     car.heading = (car.heading % 360 + 360) % 360;
 
     // 위치 갱신 (미터 → 위경도)
@@ -163,21 +380,28 @@
     car.lng += (dist * Math.sin(rad)) / (M_PER_DEG * Math.cos(car.lat * Math.PI / 180));
 
     // 줌: 빠를수록 멀리 보이게
-    const targetZoom = CFG.zoomNear - (CFG.zoomNear - CFG.zoomFar) * Math.min(1, Math.abs(car.v) / CFG.maxFwd);
+    const targetZoom = CFG.zoomNear - (CFG.zoomNear - CFG.zoomFar) * Math.min(1, av / limit);
     zoom += (targetZoom - zoom) * Math.min(1, dt * 2.5);
 
     // 화면 반영
     const ll = [car.lat, car.lng];
     map.setView(ll, zoom, { animate: false });
     marker.setLatLng(ll);
-    const el = arrowEl();
-    if (el) el.style.transform = `rotate(${car.heading}deg)`;
-    spdEl.textContent = Math.round(Math.abs(car.v) * 3.6);
+    const arrow = document.getElementById('arrow');
+    if (arrow) arrow.style.transform = `rotate(${car.heading}deg)`;
 
-    // 궤적 (매 3프레임, 최근 250점)
-    if (++frame % 3 === 0 && Math.abs(car.v) > 0.5) {
+    el.spd.textContent = Math.round(av * 3.6);
+    el.gear.textContent = g === -1 ? 'R' : g === 0 ? 'N' : (manual ? String(g) : 'D' + g);
+    const rf = (car.rpm - IDLE) / (REDLINE - IDLE);
+    el.bar.style.width = Math.max(2, Math.min(100, rf * 100)) + '%';
+    el.bar.classList.toggle('hot', rf > 0.88);
+    el.txt.textContent = Math.round(car.rpm / 10) * 10 + ' rpm';
+    el.cl.classList.toggle('on', keys.clutch);
+
+    // 궤적 (매 3프레임, 최근 300점)
+    if (S.trail && ++frame % 3 === 0 && av > 0.5) {
       trailPts.push(ll);
-      if (trailPts.length > 250) trailPts.shift();
+      if (trailPts.length > 300) trailPts.shift();
       trail.setLatLngs(trailPts);
     }
 
