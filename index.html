@@ -12,13 +12,16 @@
     --car: #e8392b;
     --line: #d5d9e2;
     --mute: #6b7385;
+    --ok: #1f9d55;
+    --warn: #d98a00;
+    --bad: #e8392b;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: var(--ink); }
   #map { position: absolute; inset: 0; background: #e9ecf1; }
 
   .hud { position: absolute; z-index: 1000; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; backdrop-filter: blur(6px); }
-  .hud[hidden] { display: none; }
+  .hud[hidden], #panel[hidden] { display: none; }
 
   /* 계기판 */
   #dash { left: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: 196px; }
@@ -33,42 +36,50 @@
   #cl { visibility: hidden; font-weight: 600; }
   body.manual #cl { visibility: visible; opacity: .35; }
   body.manual #cl.on { opacity: 1; color: var(--car); }
+  .comfort { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+  .comfort.ok { color: var(--ok); }
+  .comfort.warn { color: var(--warn); }
+  .comfort.bad { color: var(--bad); }
+  .comfort small { font-weight: 400; color: var(--mute); }
 
-  /* 도움말 / 설정 */
-  #help { right: 14px; top: calc(14px + env(safe-area-inset-top, 0px)); font-size: 13px; line-height: 1.7; width: 232px; }
+  /* 오른쪽 위: 도움말 + 설정 */
+  #side { position: absolute; z-index: 1000; right: 14px; top: calc(14px + env(safe-area-inset-top, 0px)); width: 240px; display: flex; flex-direction: column; gap: 8px; }
+  #side .hud { position: static; }
+  #help { font-size: 13px; line-height: 1.7; }
   #help b { font-weight: 600; }
   #help .m-only { display: none; }
   body.manual #help .m-only { display: block; }
-  #help button, #panel select { font: inherit; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; }
-  #help .btns { display: flex; gap: 6px; margin-top: 6px; }
-  #panel { right: 14px; top: calc(190px + env(safe-area-inset-top, 0px)); width: 232px; font-size: 14px; display: grid; gap: 12px; }
-  body.manual #panel { top: calc(245px + env(safe-area-inset-top, 0px)); }
+  button, select { font: inherit; }
+  #help button, #panel select { padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; color: var(--ink); }
+  #help .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  #panel { font-size: 14px; display: grid; gap: 12px; }
   #panel fieldset { margin: 0; padding: 0; border: 0; display: flex; gap: 14px; align-items: center; }
-  #panel legend { padding: 0; font-weight: 600; margin-bottom: 4px; float: left; margin-right: 12px; }
+  #panel legend { padding: 0; font-weight: 600; float: left; margin-right: 12px; }
   #panel label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
   #panel .line { display: flex; align-items: center; justify-content: space-between; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--car); outline-offset: 2px; }
 
   /* 알림 */
-  #toast { position: absolute; z-index: 1100; left: 50%; top: calc(16px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: rgba(29,36,51,.92); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 80vw; text-align: center; }
+  #toast { position: absolute; z-index: 1100; left: 50%; top: calc(16px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: rgba(29,36,51,.92); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 70vw; text-align: center; }
   #toast.show { opacity: 1; }
+  #notice { position: absolute; z-index: 1200; left: 50%; top: 50%; transform: translate(-50%,-50%); width: min(420px, 88vw); background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; line-height: 1.6; font-size: 14px; display: none; }
+  #notice strong { display: block; font-size: 16px; margin-bottom: 6px; }
 
   /* 터치 버튼 */
   .pad { position: absolute; z-index: 1000; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: none; gap: 10px; }
   .pad.left { left: 14px; }
   .pad.right { right: 14px; }
-  .pad.mid { right: 14px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
   .pad button { min-width: 64px; height: 64px; padding: 0 8px; border-radius: 32px; border: 1px solid var(--line); background: var(--paper); font-size: 20px; touch-action: none; user-select: none; -webkit-user-select: none; color: var(--ink); }
   .pad.mid button { height: 48px; min-width: 56px; font-size: 15px; border-radius: 24px; }
   .pad button.on { background: var(--car); color: #fff; border-color: var(--car); }
   @media (pointer: coarse) {
     .pad.left, .pad.right { display: flex; bottom: calc(34px + env(safe-area-inset-bottom, 0px)); }
-    body.manual .pad.mid { display: flex; bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
+    body.manual .pad.mid { display: flex; right: 14px; bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
     #dash { bottom: auto; top: calc(14px + env(safe-area-inset-top, 0px)); }
+    #side { width: auto; align-items: flex-end; }
     #help .keys { display: none; }
-    #help { width: auto; padding: 6px 10px; }
-    #panel { top: calc(58px + env(safe-area-inset-top, 0px)); }
-    body.manual #panel { top: calc(58px + env(safe-area-inset-top, 0px)); }
+    #help { padding: 6px 10px; }
+    #panel { width: 232px; }
   }
 
   .car-icon svg { display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
@@ -77,37 +88,45 @@
 <body>
 <div id="map"></div>
 
-<div id="dash" class="hud" aria-live="off">
+<div id="dash" class="hud">
   <div class="row"><span class="num" id="spd">0</span><span class="unit">km/h</span><span class="gear" id="gear">D1</span></div>
   <div class="rpm"><i id="rpmbar"></i></div>
   <div class="sub"><span id="rpmtxt">900 rpm</span><span id="cl">클러치</span></div>
+  <div class="comfort ok" id="comfort"><span id="cmsg">승객 쾌적</span><small id="cg">0.0 m/s²</small></div>
 </div>
 
-<div id="help" class="hud">
-  <div class="keys">
-    <b>W/↑</b> 가속 &nbsp; <b>S/↓</b> 브레이크·후진<br>
-    <b>A/D, ←/→</b> 조향 &nbsp; <b>Space</b> 핸드브레이크<br>
-    <div class="m-only"><b>Shift</b> 클러치 &nbsp; <b>E/Q</b> 기어 업/다운<br></div>
-    <b>R</b> 시작 위치로
+<div id="side">
+  <div id="help" class="hud">
+    <div class="keys">
+      <b>W/↑</b> 가속 &nbsp; <b>S/↓</b> 브레이크·후진<br>
+      <b>A/D, ←/→</b> 조향 &nbsp; <b>Space</b> 비상브레이크<br>
+      <div class="m-only"><b>Shift</b> 클러치 &nbsp; <b>E/Q</b> 기어 업/다운<br></div>
+      <b>Z/X</b> 지도 확대/축소 &nbsp; <b>R</b> 처음으로
+    </div>
+    <div class="btns">
+      <button id="open-settings" type="button">설정</button>
+      <button id="reset" type="button">처음으로</button>
+      <button id="zin" type="button" aria-label="지도 확대">＋</button>
+      <button id="zout" type="button" aria-label="지도 축소">－</button>
+    </div>
   </div>
-  <div class="btns"><button id="open-settings" type="button">설정</button><button id="reset" type="button">처음으로</button></div>
-</div>
 
-<div id="panel" class="hud" hidden>
-  <fieldset>
-    <legend>변속</legend>
-    <label><input type="radio" name="trans" value="auto"> 자동</label>
-    <label><input type="radio" name="trans" value="manual"> 수동</label>
-  </fieldset>
-  <label><input type="checkbox" id="trail"> 주행 궤적 남기기</label>
-  <div class="line"><span>최고속도</span>
-    <select id="limit" aria-label="최고속도">
-      <option value="40">40 km/h</option>
-      <option value="60">60 km/h</option>
-      <option value="80">80 km/h</option>
-      <option value="100">100 km/h</option>
-      <option value="120">120 km/h</option>
-    </select>
+  <div id="panel" class="hud" hidden>
+    <fieldset>
+      <legend>변속</legend>
+      <label><input type="radio" name="trans" value="auto"> 자동</label>
+      <label><input type="radio" name="trans" value="manual"> 수동</label>
+    </fieldset>
+    <label><input type="checkbox" id="trail"> 주행 궤적 남기기</label>
+    <div class="line"><span>최고속도</span>
+      <select id="limit" aria-label="최고속도">
+        <option value="30">30 km/h</option>
+        <option value="40">40 km/h</option>
+        <option value="50">50 km/h</option>
+        <option value="60">60 km/h</option>
+        <option value="80">80 km/h</option>
+      </select>
+    </div>
   </div>
 </div>
 
@@ -126,53 +145,88 @@
 </div>
 
 <div id="toast" role="status"></div>
+<div id="notice"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-
-  const KEY = 'map-drive-settings';
-  const loadS = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
-  const saveS = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-  const S = Object.assign({ trans: 'auto', trail: true, limitKmh: 80 }, loadS());
-
-  const START = { lat: 37.6136, lng: 127.1019, heading: 0 };
-  const GEAR_FRAC = [0, 0.20, 0.38, 0.56, 0.73, 0.88, 1.0];
-  const GEAR_ACC  = [0, 7.5, 5.6, 4.3, 3.4, 2.7, 2.1];
-  const IDLE = 900, REDLINE = 7000;
-  const CFG = { brake: 9, handbrake: 14, turnRate: 95, zoomNear: 18.4, zoomFar: 17.2 };
-
-  let toastTimer;
-  function toast(msg) {
-    const t = $('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
-  }
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const approach = (cur, target, up, down, dt) => {
+    const d = target - cur;
+    return cur + (d > 0 ? Math.min(d, up * dt) : Math.max(d, -down * dt));
+  };
+  const notice = (title, body) => {
+    const n = $('notice');
+    n.innerHTML = '<strong></strong><span></span>';
+    n.firstChild.textContent = title;
+    n.lastChild.textContent = body;
+    n.style.display = 'block';
+  };
 
   if (typeof L === 'undefined') {
-    toast('Leaflet 라이브러리를 불러오지 못했습니다.');
+    notice('지도 라이브러리를 불러오지 못했어요',
+      '인터넷 연결을 확인하거나, 미리보기 창이 아닌 일반 브라우저(또는 GitHub Pages 주소)에서 열어 보세요.');
     return;
   }
 
+  // ───────── 설정 (브라우저에 저장) ─────────
+  const KEY = 'map-drive-settings-v2';
+  const LIMITS = [30, 40, 50, 60, 80];
+  const loadS = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+  const saveS = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+  const S = Object.assign({ trans: 'auto', trail: true, limitKmh: 50, zoom: 18 }, loadS());
+  if (!LIMITS.includes(S.limitKmh)) S.limitKmh = 50;
+  S.zoom = clamp(Math.round(Number(S.zoom)) || 18, 16, 19);
+
+  // ───────── 차량 제원 / 튜닝 값 (여기를 고치면 버스 느낌이 바뀜) ─────────
+  const START = { lat: 37.6136, lng: 127.1019, heading: 0 };   // 서울 중랑차고지
+  const BUS = {
+    wheelbase: 6.0,      // 축거 (m) — 12m급 대형 버스
+    maxSteer: 35,        // 최대 조향각 (도) → 최소 회전반경 약 8.6m
+    latLimit: 3.0        // 선회 시 허용 횡가속도 (m/s²): 고속일수록 조향각을 이 한도로 제한
+  };
+  const GEAR_FRAC = [0, 0.20, 0.38, 0.56, 0.73, 0.88, 1.0];    // 기어별 최고속도 비율 (최고속도 × 비율)
+  const GEAR_ACC  = [0, 1.2, 1.0, 0.85, 0.7, 0.55, 0.45];      // 기어별 최대 가속도 (m/s²)
+  const IDLE = 900, REDLINE = 7000;
+  const CFG = {
+    brake: 2.8,          // 일반 브레이크 최대 감속 (m/s²)
+    emergency: 6.0,      // 비상 브레이크 (Space) 추가 감속
+    softStop: [0.3, 1.4],// 정차 직전 감속 완화: 감속 ≤ 0.3 + 1.4×속도 → 마지막에 '쿵' 하지 않음
+    thrUp: 0.9, thrDown: 2.5,   // 가속 페달 밟는/떼는 속도 (1/초)
+    brkUp: 0.7, brkDown: 3.0,   // 브레이크 페달 밟는/떼는 속도
+    emgUp: 3.0, emgDown: 4.0,   // 비상 브레이크
+    steerRate: 45,       // 핸들 돌리는 속도 (도/초)
+    steerReturn: 70,     // 핸들 복귀 속도
+    comfortOk: 1.3,      // 이하: 쾌적 (m/s²)
+    comfortWarn: 2.0     // 이상: 서 있는 승객이 넘어질 수 있음
+  };
+
+  // ───────── 지도 (API 키 불필요) ─────────
+  // 줌은 정수 단계로만 바꿉니다. 이동 중 줌을 매 프레임 바꾸면 Leaflet이 타일을 전부 버려서 지도가 사라져요.
   const map = L.map('map', {
-    zoomControl: false, zoomSnap: 0, zoomAnimation: false, fadeAnimation: false,
+    zoomControl: false, zoomSnap: 1, zoomAnimation: false, fadeAnimation: false,
     dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
-    boxZoom: false, keyboard: false, touchZoom: false, attributionControl: false
-  }).setView([START.lat, START.lng], CFG.zoomNear);
+    boxZoom: false, keyboard: false, touchZoom: false, attributionControl: false,
+    minZoom: 16, maxZoom: 19
+  }).setView([START.lat, START.lng], S.zoom);
 
   L.control.attribution({ position: 'bottomright', prefix: false }).addTo(map);
 
-  // 오픈스트리트맵 공식 타일 (검은 화면 방지 최적화 설정 추가)
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    updateWhenIdle: false,
-    keepBuffer: 8,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(map);
+  let tilesLoaded = 0, tileErrors = 0;
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd', maxZoom: 20, keepBuffer: 4,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  }).on('tileload', () => { tilesLoaded++; })
+    .on('tileerror', () => {
+      tileErrors++;
+      if (tileErrors >= 4 && tilesLoaded === 0) {
+        notice('지도 타일을 불러오지 못했어요',
+          '외부 이미지를 막는 환경(예: 미리보기 창)에서는 지도가 보이지 않아요. 일반 브라우저나 GitHub Pages 주소에서 열어 보세요.');
+      }
+    }).addTo(map);
 
+  // ───────── 차량(화살표) ─────────
   const arrowSvg = `
     <svg width="44" height="44" viewBox="-22 -22 44 44" id="arrow">
       <path d="M0 -18 L13 15 L0 8 L-13 15 Z" fill="#e8392b" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
@@ -181,24 +235,48 @@
     icon: L.divIcon({ className: 'car-icon', html: arrowSvg, iconSize: [44, 44], iconAnchor: [22, 22] }),
     interactive: false, keyboard: false, zIndexOffset: 1000
   }).addTo(map);
-  const trail = L.polyline([], { color: '#e8392b', weight: 4, opacity: 0.6, lineCap: 'round' }).addTo(map);
+  const trail = L.polyline([], { color: '#e8392b', weight: 4, opacity: 0.45, lineCap: 'round' }).addTo(map);
 
-  const car = { lat: START.lat, lng: START.lng, heading: START.heading, v: 0, gear: 1, rpm: IDLE };
+  // ───────── 상태 ─────────
+  const car = {
+    lat: START.lat, lng: START.lng, heading: START.heading, v: 0, gear: 1, rpm: IDLE,
+    thr: 0, brk: 0, emg: 0, steer: 0, aLong: 0
+  };
   const keys = { up: false, down: false, left: false, right: false, hand: false, clutch: false };
-  let zoom = CFG.zoomNear;
   let trailPts = [];
   let frame = 0;
+  let dangerTime = 0, lastFall = -99;
 
-  const GEAR_SEQ = [-1, 0, 1, 2, 3, 4, 5, 6];
+  // ───────── 알림 ─────────
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ───────── 변속 ─────────
+  const GEAR_SEQ = [-1, 0, 1, 2, 3, 4, 5, 6];   // R, N, 1~6
   function shiftGear(d) {
     if (S.trans !== 'manual') return;
     if (!keys.clutch) { toast('클러치(Shift)를 누른 채 변속하세요'); return; }
     let i = GEAR_SEQ.indexOf(car.gear) + d;
-    i = Math.max(0, Math.min(GEAR_SEQ.length - 1, i));
+    i = clamp(i, 0, GEAR_SEQ.length - 1);
     if (GEAR_SEQ[i] === -1 && Math.abs(car.v) > 2) { toast('정지한 뒤에 후진 기어를 넣으세요'); return; }
     car.gear = GEAR_SEQ[i];
   }
 
+  // ───────── 줌 ─────────
+  function zoomBy(d) {
+    const z = clamp(S.zoom + d, 16, 19);
+    if (z === S.zoom) return;
+    S.zoom = z; saveS();
+    map.setView([car.lat, car.lng], z, { animate: false });
+  }
+
+  // ───────── 입력 ─────────
   const keyMap = {
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
@@ -210,6 +288,7 @@
     if (inForm(e.target)) return;
     if (e.code === 'KeyR') { resetCar(); return; }
     if (e.code === 'KeyE' || e.code === 'KeyQ') { if (!e.repeat) shiftGear(e.code === 'KeyE' ? 1 : -1); return; }
+    if (e.code === 'KeyZ' || e.code === 'KeyX') { if (!e.repeat) zoomBy(e.code === 'KeyZ' ? 1 : -1); return; }
     const k = keyMap[e.code];
     if (k) { keys[k] = true; e.preventDefault(); }
   });
@@ -233,13 +312,20 @@
   });
 
   function resetCar() {
-    Object.assign(car, { lat: START.lat, lng: START.lng, heading: START.heading, v: 0, rpm: IDLE });
+    Object.assign(car, {
+      lat: START.lat, lng: START.lng, heading: START.heading, v: 0, rpm: IDLE,
+      thr: 0, brk: 0, emg: 0, steer: 0, aLong: 0
+    });
     car.gear = S.trans === 'manual' ? 0 : 1;
     trailPts = []; trail.setLatLngs([]);
+    map.setView([START.lat, START.lng], S.zoom, { animate: false });
     if (S.trans === 'manual') toast('중립(N) 상태예요. Shift를 누른 채 E로 1단을 넣으세요');
   }
   $('reset').addEventListener('click', e => { resetCar(); e.currentTarget.blur(); });
+  $('zin').addEventListener('click', e => { zoomBy(1); e.currentTarget.blur(); });
+  $('zout').addEventListener('click', e => { zoomBy(-1); e.currentTarget.blur(); });
 
+  // ───────── 설정 UI ─────────
   const panel = $('panel');
   $('open-settings').addEventListener('click', e => { panel.hidden = !panel.hidden; e.currentTarget.blur(); });
 
@@ -261,6 +347,7 @@
   car.gear = S.trans === 'manual' ? 0 : 1;
   applySettings();
 
+  // ───────── 물리 ─────────
   function torque(frac) {
     if (frac < 0.15) return 0.35 + 0.4 * (frac / 0.15);
     if (frac < 0.5) return 0.75 + 0.25 * ((frac - 0.15) / 0.35);
@@ -269,32 +356,43 @@
   }
 
   const M_PER_DEG = 111320;
-  const el = { spd: $('spd'), gear: $('gear'), bar: $('rpmbar'), txt: $('rpmtxt'), cl: $('cl') };
+  const el = {
+    spd: $('spd'), gear: $('gear'), bar: $('rpmbar'), txt: $('rpmtxt'), cl: $('cl'),
+    comfort: $('comfort'), cmsg: $('cmsg'), cg: $('cg')
+  };
   let last = performance.now();
 
   function step(now) {
-    const dt = Math.min(0.05, (now - last) / 1000);
+    const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
     last = now;
+    const vPrev = car.v;
 
     const limit = S.limitKmh / 3.6;
-    const gearMax = g => (g === -1 ? Math.min(5, limit * 0.4) : limit * GEAR_FRAC[g]);
+    const gearMax = g => (g === -1 ? Math.min(4, limit * 0.4) : limit * GEAR_FRAC[g]);
     const manual = S.trans === 'manual';
 
-    let throttle = 0, brake = 0;
+    // 입력 해석 + 자동 변속
+    let throttleIn = 0, brakeIn = 0;
     if (manual) {
-      throttle = keys.up ? 1 : 0;
-      brake = keys.down ? 1 : 0;
+      throttleIn = keys.up ? 1 : 0;
+      brakeIn = keys.down ? 1 : 0;
     } else {
       if (car.gear >= 1 && keys.down && !keys.up && car.v < 0.4) car.gear = -1;
       else if (car.gear === -1 && keys.up && !keys.down && car.v > -0.4) car.gear = 1;
-      if (car.gear === -1) { throttle = keys.down ? 1 : 0; brake = keys.up ? 1 : 0; }
-      else { throttle = keys.up ? 1 : 0; brake = keys.down ? 1 : 0; }
+      if (car.gear === -1) { throttleIn = keys.down ? 1 : 0; brakeIn = keys.up ? 1 : 0; }
+      else { throttleIn = keys.up ? 1 : 0; brakeIn = keys.down ? 1 : 0; }
       if (car.gear >= 1) {
         if (car.gear < 6 && car.v > gearMax(car.gear) * 0.9) car.gear++;
         else if (car.gear > 1 && car.v < gearMax(car.gear - 1) * 0.55) car.gear--;
       }
     }
 
+    // 페달은 서서히 밟고 서서히 뗌 (급가속·급제동 방지)
+    car.thr = approach(car.thr, throttleIn, CFG.thrUp, CFG.thrDown, dt);
+    car.brk = approach(car.brk, brakeIn, CFG.brkUp, CFG.brkDown, dt);
+    car.emg = approach(car.emg, keys.hand ? 1 : 0, CFG.emgUp, CFG.emgDown, dt);
+
+    // 구동
     const g = car.gear;
     const engaged = g !== 0 && !(manual && keys.clutch);
     let gm = 1;
@@ -303,53 +401,76 @@
       const dir = g === -1 ? -1 : 1;
       const along = car.v * dir;
       const frac = Math.max(0, along) / gm;
-      if (throttle) {
+      if (car.thr > 0.001) {
         if (along < gm) {
           let tq = torque(frac);
           if (!manual && frac < 0.5) tq = Math.max(tq, 0.85);
-          car.v += dir * (g === -1 ? 3 : GEAR_ACC[g]) * tq * dt;
+          car.v += dir * (g === -1 ? 0.9 : GEAR_ACC[g]) * tq * car.thr * dt;
         }
       } else {
-        const eb = (manual ? 1.4 : 0.5) * Math.min(1, frac);
+        const eb = (manual ? 0.9 : 0.4) * Math.min(1, frac);
         car.v -= Math.sign(car.v) * Math.min(Math.abs(car.v), eb * dt);
       }
       if (along > gm) {
-        car.v -= dir * Math.min(along - gm, (6 + 20 * (along / gm - 1)) * dt);
+        // 기어 한계 초과(과회전): 엔진 브레이크로 감속
+        const over = Math.min(4, 1.5 + 6 * (along / gm - 1));
+        car.v -= dir * Math.min(along - gm, over * dt);
       }
     }
 
-    const roll = (0.12 * Math.abs(car.v) + 0.5) * dt;
-    car.v -= Math.sign(car.v) * Math.min(Math.abs(car.v), roll);
-    const bf = (brake ? CFG.brake : 0) + (keys.hand ? CFG.handbrake : 0);
-    if (bf) car.v -= Math.sign(car.v) * Math.min(Math.abs(car.v), bf * dt);
-    if (Math.abs(car.v) < 0.03 && !throttle) car.v = 0;
+    // 구름·공기 저항
+    const av0 = Math.abs(car.v);
+    car.v -= Math.sign(car.v) * Math.min(av0, (0.12 + 0.0004 * av0 * av0) * dt);
 
+    // 브레이크 (일반 브레이크는 정차 직전에 부드럽게 풀림)
+    const av1 = Math.abs(car.v);
+    const svc = Math.min(car.brk * CFG.brake, CFG.softStop[0] + CFG.softStop[1] * av1);
+    const emg = car.emg * CFG.emergency;
+    car.v -= Math.sign(car.v) * Math.min(av1, (svc + emg) * dt);
+    if (Math.abs(car.v) < 0.02 && car.thr < 0.05) car.v = 0;
+
+    // 엔진 회전수
     let rpmTarget;
     if (engaged) rpmTarget = IDLE + (REDLINE - IDLE) * Math.min(1, Math.abs(car.v) / gm);
-    else rpmTarget = IDLE + (REDLINE - IDLE) * throttle * 0.85;
+    else rpmTarget = IDLE + (REDLINE - IDLE) * car.thr * 0.85;
     car.rpm += (rpmTarget - car.rpm) * Math.min(1, dt * (engaged ? 10 : 6));
 
-    const steer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+    // 조향 (자전거 모델): 속도가 높을수록 조향각을 제한, 멈춰 있으면 회전 불가
     const av = Math.abs(car.v);
-    const grip = Math.min(1, av / 5) / (1 + av / 18);
-    car.heading += steer * CFG.turnRate * grip * Math.sign(car.v) * dt;
+    const steerIn = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+    const maxNow = Math.min(BUS.maxSteer, Math.atan(BUS.wheelbase * BUS.latLimit / Math.max(av * av, 0.0001)) * 180 / Math.PI);
+    const steerTarget = steerIn * maxNow;
+    const sRate = steerIn ? CFG.steerRate : CFG.steerReturn;
+    car.steer += clamp(steerTarget - car.steer, -sRate * dt, sRate * dt);
+    car.steer = clamp(car.steer, -maxNow, maxNow);
+    const yawRate = car.v / BUS.wheelbase * Math.tan(car.steer * Math.PI / 180);   // rad/s
+    car.heading += yawRate * 180 / Math.PI * dt;
     car.heading = (car.heading % 360 + 360) % 360;
 
+    // 위치 갱신 (미터 → 위경도)
     const rad = car.heading * Math.PI / 180;
     const dist = car.v * dt;
     car.lat += (dist * Math.cos(rad)) / M_PER_DEG;
     car.lng += (dist * Math.sin(rad)) / (M_PER_DEG * Math.cos(car.lat * Math.PI / 180));
 
-    const targetZoom = CFG.zoomNear - (CFG.zoomNear - CFG.zoomFar) * Math.min(1, av / limit);
-    zoom += (targetZoom - zoom) * Math.min(1, dt * 2.5);
-
-    const ll = [car.lat, car.lng];
-    // 💡 패치 포인트: 매 프레임 강제 렌더링 대신 PanTo를 활용해 부드럽게 추적하도록 개선
-    map.panTo(ll, { animate: false });
-    if (Math.abs(map.getZoom() - zoom) > 0.05) {
-      map.setZoom(zoom, { animate: false });
+    // 승객 쾌적도: 앞뒤 가감속 + 선회 횡가속도
+    const aRaw = (car.v - vPrev) / dt;
+    car.aLong += (aRaw - car.aLong) * Math.min(1, dt / 0.25);
+    const aLat = car.v * yawRate;
+    const aTot = Math.hypot(car.aLong, aLat);
+    const level = aTot >= CFG.comfortWarn ? 'bad' : aTot >= CFG.comfortOk ? 'warn' : 'ok';
+    el.comfort.className = 'comfort ' + level;
+    el.cmsg.textContent = level === 'ok' ? '승객 쾌적' : level === 'warn' ? '승객 불안' : '승객 넘어짐 위험!';
+    el.cg.textContent = aTot.toFixed(1) + ' m/s²';
+    dangerTime = level === 'bad' ? dangerTime + dt : 0;
+    if (dangerTime > 0.4 && now / 1000 - lastFall > 6) {
+      lastFall = now / 1000; dangerTime = 0;
+      toast('승객이 넘어졌어요! 더 부드럽게 운전하세요');
     }
 
+    // 화면 반영 (줌은 그대로 두고 위치만 이동)
+    const ll = [car.lat, car.lng];
+    map.setView(ll, S.zoom, { animate: false });
     marker.setLatLng(ll);
     const arrow = document.getElementById('arrow');
     if (arrow) arrow.style.transform = `rotate(${car.heading}deg)`;
@@ -357,11 +478,12 @@
     el.spd.textContent = Math.round(av * 3.6);
     el.gear.textContent = g === -1 ? 'R' : g === 0 ? 'N' : (manual ? String(g) : 'D' + g);
     const rf = (car.rpm - IDLE) / (REDLINE - IDLE);
-    el.bar.style.width = Math.max(2, Math.min(100, rf * 100)) + '%';
+    el.bar.style.width = clamp(rf * 100, 2, 100) + '%';
     el.bar.classList.toggle('hot', rf > 0.88);
     el.txt.textContent = Math.round(car.rpm / 10) * 10 + ' rpm';
     el.cl.classList.toggle('on', keys.clutch);
 
+    // 궤적 (매 3프레임, 최근 300점)
     if (S.trail && ++frame % 3 === 0 && av > 0.5) {
       trailPts.push(ll);
       if (trailPts.length > 300) trailPts.shift();
