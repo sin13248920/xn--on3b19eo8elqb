@@ -8,7 +8,7 @@
 <style>
   :root {
     --ink: #1d2433;
-    --paper: rgba(255, 255, 255, 0.93);
+    --paper: rgba(255, 255, 255, 0.94);
     --car: #e8392b;
     --route: #1976d2;
     --line: #d5d9e2;
@@ -24,8 +24,8 @@
   .hud { position: absolute; z-index: 1000; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; backdrop-filter: blur(6px); }
   .hud[hidden], #panel[hidden] { display: none; }
 
-  /* 계기판 (좌측 하단) */
-  #dash { left: 14px; bottom: 14px; width: 214px; }
+  /* 계기판 */
+  #dash { left: 14px; bottom: 14px; width: 224px; }
   #dash .veh { font-size: 12px; font-weight: 600; color: var(--mute); margin-bottom: 4px; }
   #dash .row { display: flex; align-items: baseline; gap: 6px; }
   #dash .num { font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
@@ -42,10 +42,11 @@
   body.manual #cl { visibility: visible; opacity: .35; }
   body.manual #cl.on { opacity: 1; color: var(--car); }
 
-  /* 출입문 상태 표시 */
-  .doors { display: flex; gap: 6px; margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line); font-size: 12px; }
-  .door-badge { flex: 1; text-align: center; padding: 3px 6px; border-radius: 5px; background: #eef1f6; color: var(--mute); font-weight: 600; }
-  .door-badge.open { background: #dcfce7; color: var(--ok); border: 1px solid #86efac; }
+  /* 도어 & 주차브레이크 표시등 */
+  .indicators { display: flex; gap: 5px; margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); }
+  .ind { flex: 1; text-align: center; font-size: 11px; font-weight: 700; padding: 3px 0; border-radius: 4px; background: #e6e9ef; color: var(--mute); }
+  .ind.door-open { background: #fef3c7; color: #b45309; border: 1px solid #f59e0b; }
+  .ind.park-on { background: #fee2e2; color: #b91c1c; border: 1px solid #ef4444; }
 
   .comfort { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
   .comfort.ok { color: var(--ok); }
@@ -54,7 +55,7 @@
   .comfort small { font-weight: 400; color: var(--mute); }
 
   /* 오른쪽: 승객 현황 + 도움말 + 설정 */
-  #side { position: absolute; z-index: 1000; right: 14px; top: 14px; width: 256px; display: flex; flex-direction: column; gap: 8px; }
+  #side { position: absolute; z-index: 1000; right: 14px; top: 14px; width: 270px; display: flex; flex-direction: column; gap: 8px; }
   #side .hud { position: static; }
 
   #pax { font-size: 13px; }
@@ -64,27 +65,49 @@
   #pax .main { display: flex; align-items: center; gap: 6px; }
   #pax .n { font-size: 34px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 
-  /* 하차벨 STOP 표시등 */
+  /* 정사각형 하차벨 (STOP) */
   #stop-bell {
     margin-left: auto;
-    padding: 4px 10px;
-    border-radius: 5px;
-    background: #5c1616; /* 어두운 빨강 */
-    color: #000000;      /* 검정 STOP */
-    font-weight: 800;
-    font-size: 13px;
-    letter-spacing: 1px;
-    border: 1px solid #3d0d0d;
-    transition: background-color 0.2s, box-shadow 0.2s;
+    width: 46px;
+    height: 46px;
+    border-radius: 6px;
+    background: #6e1414; /* 평소: 살짝 어두운 빨간 배경 */
+    color: #111111;      /* 검정 STOP */
+    border: 2px solid #450a0a;
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    display: grid;
+    place-items: center;
+    user-select: none;
+    transition: background 0.15s, box-shadow 0.15s;
   }
-  #stop-bell.on {
-    background: #ff2a2a; /* 밝은 빨강 */
-    border-color: #ff6b6b;
-    box-shadow: 0 0 10px rgba(255, 42, 42, 0.75);
+  #stop-bell.active {
+    background: #ff2a2a; /* 승객이 누르면: 밝은 빨강 */
+    color: #000000;      /* 검정 STOP */
+    border-color: #990000;
+    box-shadow: 0 0 12px rgba(255, 42, 42, 0.75);
   }
 
   #pax .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 8px 0; color: var(--mute); }
   #pax .grid b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* 승하차 실시간 진행 박스 */
+  #boarding-box {
+    margin: 6px 0;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #boarding-box.active { background: #dbeafe; color: #1e40af; }
+  #boarding-box.warn { background: #fef3c7; color: #92400e; }
+
   #pax .state { font-weight: 600; padding-top: 7px; border-top: 1px solid var(--line); }
   #pax .state.ok { color: var(--ok); }
   #pax .state.warn { color: var(--warn); }
@@ -99,27 +122,42 @@
   body.manual #help .m-only { display: block; }
   body.manual #help .a-only { display: none; }
   button, select { font: inherit; }
-  #help button, #pause button { padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; color: var(--ink); }
+  #help button, #pause button, #start-screen button { padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; color: var(--ink); }
   #help .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-  #panel { font-size: 14px; display: grid; gap: 12px; }
-  #panel fieldset { margin: 0; padding: 0; border: 0; display: grid; gap: 6px; }
-  #panel legend { padding: 0; font-weight: 600; margin-bottom: 4px; }
+  #panel { font-size: 14px; display: grid; gap: 10px; }
   #panel label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--car); outline-offset: 2px; }
 
   /* 정류소 마커 */
   .stop { position: relative; width: 24px; height: 24px; pointer-events: none; }
-  .stop .wait {
-    position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
-    white-space: nowrap; background: var(--car); color: #fff;
-    border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 700;
-    box-shadow: 0 1px 4px rgba(0,0,0,.35);
-  }
-  .stop .wait:empty { display: none; }
   .stop .dot { width: 24px; height: 24px; border-radius: 50%; background: var(--route); color: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
-  .stop .lab { position: absolute; left: 50%; top: 28px; transform: translateX(-50%); white-space: nowrap; background: rgba(255,255,255,.92); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; font-size: 12px; font-weight: 600; }
+  .stop .lab { position: absolute; left: 50%; top: 28px; transform: translateX(-50%); white-space: nowrap; background: rgba(255,255,255,.94); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; font-size: 11px; font-weight: 600; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+  .stop .lab .wait-cnt { color: var(--route); font-weight: 700; margin-left: 4px; }
+  .stop.turnaround .dot { background: #7c3aed; }
   .stop.done .dot { background: #8a93a5; }
   .stop.passed .dot { background: var(--warn); }
+
+  /* 초기화면(차량/노선 선택 모달) */
+  #start-screen {
+    position: absolute; inset: 0; z-index: 1300;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: grid; place-items: center;
+  }
+  #start-screen[hidden] { display: none; }
+  #start-screen .card {
+    background: #fff; border-radius: 14px; padding: 24px 28px;
+    width: min(420px, 92vw); box-shadow: 0 12px 36px rgba(0,0,0,.3);
+    display: grid; gap: 14px;
+  }
+  #start-screen h2 { margin: 0; font-size: 20px; }
+  #start-screen .field { display: grid; gap: 6px; font-size: 14px; }
+  #start-screen .field label { font-weight: 600; }
+  #start-screen select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  #start-screen .hint { font-size: 12px; color: var(--mute); line-height: 1.5; }
+  #start-screen button.primary {
+    padding: 10px; font-size: 15px; font-weight: 700;
+    background: var(--route); color: #fff; border: none; border-radius: 8px;
+  }
 
   /* 알림 / 정지화면 */
   #toast { position: absolute; z-index: 1100; left: 50%; top: 16px; transform: translateX(-50%); background: rgba(29,36,51,.92); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 60vw; text-align: center; }
@@ -147,31 +185,53 @@
   </svg>
 </div>
 
+<!-- 초기화면: 차량 및 노선 선택 -->
+<div id="start-screen">
+  <div class="card">
+    <h2>지도 버스 운전게임</h2>
+    <div class="field">
+      <label for="sel-vehicle">차량 선택 (car 폴더)</label>
+      <select id="sel-vehicle"></select>
+    </div>
+    <div class="field">
+      <label for="sel-route">노선 선택 (route 폴더)</label>
+      <select id="sel-route"></select>
+    </div>
+    <div class="hint">
+      • 정류소 정차 후 <b>F(앞문)</b> / <b>G(뒷문)</b>을 열어야 승객이 타고 내립니다.<br>
+      • <b>P</b> 키로 주차브레이크를 체결/해제할 수 있습니다.
+    </div>
+    <button id="btn-start" class="primary" type="button">운행 시작</button>
+  </div>
+</div>
+
 <div id="dash" class="hud">
   <div class="veh" id="vehname">에어로시티 (저상) · 자동</div>
   <div class="row"><span class="num" id="spd">0</span><span class="unit">km/h</span><span class="gear" id="gear">D1</span></div>
   <div class="rpm"><i id="rpmbar"></i></div>
   <div class="sub"><span id="rpmtxt">650 rpm</span><span id="cl">클러치</span></div>
   <div class="sub" id="retrow"><span>리타더</span><b id="ret">OFF</b></div>
-  <div class="doors">
-    <span class="door-badge" id="door-f">앞문(F) 닫힘</span>
-    <span class="door-badge" id="door-g">뒷문(G) 닫힘</span>
+  <div class="indicators">
+    <div class="ind" id="ind-front">앞문 닫힘</div>
+    <div class="ind" id="ind-rear">뒷문 닫힘</div>
+    <div class="ind park-on" id="ind-park">PARK</div>
   </div>
   <div class="comfort ok" id="comfort"><span id="cmsg">승객 쾌적</span><small id="cg">0.0 m/s²</small></div>
 </div>
 
 <div id="side">
   <div id="pax" class="hud">
-    <div class="ttl"><b id="route-name">노선 불러오는 중…</b><small id="pax-cap">정원 60명</small></div>
+    <div class="ttl"><b id="route-name">노선 대기 중</b><small id="pax-cap">정원 60명</small></div>
     <div class="main">
       <span class="n" id="pax-n">0</span><span>명 탑승</span>
-      <div id="stop-bell" title="하차벨 상태">STOP</div>
+      <div id="stop-bell" title="하차벨">STOP</div>
     </div>
     <div class="grid">
       <span>착석 <b id="pax-seat">0</b></span>
       <span>입석 <b id="pax-stand">0</b></span>
       <span>넘어짐 <b id="pax-fell">0</b></span>
     </div>
+    <div id="boarding-box">문 닫힘 · 운행 대기</div>
     <div class="state ok" id="pax-state">승객 없음</div>
     <div class="next" id="pax-next">정류소 정보 없음</div>
     <div class="last" id="pax-last"></div>
@@ -181,13 +241,14 @@
     <div class="keys">
       <b>W/↑</b> 가속 &nbsp; <b>S/↓</b> 브레이크·후진<br>
       <b>A/D, ←/→</b> 조향 &nbsp; <b>Space</b> 비상브레이크<br>
-      <b>F</b> 앞문(승차) &nbsp; <b>G</b> 뒷문(하차)<br>
+      <b>F</b> 앞문 &nbsp; <b>G</b> 뒷문 &nbsp; <b>P</b> 주차브레이크<br>
       <div class="a-only"><b>R</b> 리타더 줄이기 &nbsp; <b>T</b> 높이기<br></div>
       <div class="m-only"><b>Shift</b> 클러치 &nbsp; <b>E/Q</b> 기어 업/다운<br></div>
       <b>Z/X</b> 지도 확대/축소 &nbsp; <b>/</b> 정지화면
     </div>
     <div class="btns">
       <button id="open-settings" type="button">설정</button>
+      <button id="open-menu" type="button">차량·노선 변경</button>
       <button id="reset" type="button">처음으로</button>
       <button id="zin" type="button" aria-label="지도 확대">＋</button>
       <button id="zout" type="button" aria-label="지도 축소">－</button>
@@ -195,16 +256,6 @@
   </div>
 
   <div id="panel" class="hud" hidden>
-    <fieldset>
-      <legend>노선 방향 (route 폴더)</legend>
-      <label><input type="radio" name="dir" value="up"> 상행선 (route/up.kml)</label>
-      <label><input type="radio" name="dir" value="down"> 하행선 (route/down.kml)</label>
-    </fieldset>
-    <fieldset>
-      <legend>변속 · 차량</legend>
-      <label><input type="radio" name="trans" value="auto"> 자동 · 에어로시티 저상</label>
-      <label><input type="radio" name="trans" value="manual"> 수동 · 에어로시티 고상</label>
-    </fieldset>
     <label><input type="checkbox" id="trail"> 주행 궤적 남기기</label>
   </div>
 </div>
@@ -223,11 +274,16 @@
 <div id="toast" role="status"></div>
 <div id="notice"></div>
 
+<!-- 외부 차량 파일 로드 (car/vehicles.js) -->
+<script src="car/vehicles.js"></script>
+
+<!-- 내장 기본 노선 (route 폴더 로드 실패 시 fallback) -->
 <script type="application/xml" id="kml-fallback"><?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>2416</name>
 <Placemark><name>2416(삼성동방향)</name><LineString><coordinates>127.1043482256634,37.613433263216 127.1042680753716,37.61318392605531 127.1030308909233,37.61348074304938 127.1022590908066,37.61368307902029 127.101703909611,37.61386398549202 127.1015890926951,37.61386736383005 127.101471584073,37.61380888067273 127.1013948874163,37.61369195511499 127.1010062440701,37.60917663116768 127.1009060183214,37.60895635205291 127.1004280525405,37.60837074556316 127.0974660258172,37.6077971436489 127.0963718670278,37.60738687891343 127.0954739952545,37.60698494775059 127.0939150275441,37.60646547518098 127.0935014476624,37.60633295040932 127.0930087911518,37.60602649895705 127.0923497472281,37.60558226332251 127.0917142339361,37.60515516406259 127.0910156064836,37.60469503526845 127.0903592589418,37.60425526649048 127.0895410480345,37.60376195594172 127.0888090112111,37.60348302574267 127.087905060973,37.60322128293948 127.0874301316618,37.60305639224332 127.0872642481798,37.60299803897909 127.0871834921187,37.60289117386636 127.0871699007384,37.60276283490469 127.0875265927183,37.60012855561953 127.087677356182,37.59932626689318 127.0880442251329,37.59724171998057 127.087959471101,37.59710439152823 127.0873902498224,37.59688125108797 127.0869094166794,37.59675387144112 127.0867561980081,37.59668009373057 127.0845590514116,37.59607946641065 127.0843178179498,37.59603499284169 127.0835091785488,37.59582944245025 127.0831794477051,37.59577256744506 127.0824660580481,37.59558726032972 127.0821627207281,37.59545720755239 127.0807045979076,37.59511824428802 127.0805354068834,37.59508102395863 127.0803916274812,37.59500077915762 127.0802458507561,37.59487333808536 127.0801791472761,37.59476824586405 127.0800929572001,37.59314756799604 127.0801478824616,37.5929361439726 127.0796061842327,37.58191800104935 127.0795560042647,37.58178684575353 127.0792272229552,37.58145980888511 127.0780654772112,37.58110993857714 127.0761073270868,37.58039810321686 127.0756926052304,37.5802059656497 127.0725386863968,37.57906557759168 127.0723608777888,37.57896616915348 127.0722657304384,37.5788257994511 127.0722177920471,37.57866312023597 127.0717811207094,37.57286232347635 127.071515155422,37.57203234948068 127.0707775057002,37.57094026295373 127.070525021508,37.57046472840889 127.064993574817,37.56222849257412 127.0649098105924,37.56198738411858 127.0647079062028,37.56167725695035 127.0646688492892,37.56152757305442 127.064711273542,37.56138622996023 127.0708009682488,37.56058476493916 127.0791233292089,37.55725471358932 127.0792473727167,37.55715591075597 127.0793050004472,37.55703281884382 127.0792782890375,37.55687983048119 127.0765525668998,37.55165720162496 127.0760455980755,37.55034710352181 127.0746809899218,37.54798944434623 127.0742699941575,37.5474494043635 127.0740460023444,37.54715154464829 127.0733878439544,37.54577839108527 127.0706476979155,37.53997282783024 127.0641754402657,37.54216906397642 127.0640399706195,37.54214847212385 127.0639076391659,37.54206693033743 127.0622693849704,37.53928038530537 127.0620500339024,37.53898431621876 127.0606914102933,37.5366320255026 127.0602719808744,37.53589180249374 127.0596915012767,37.53465465763571 127.0554294599447,37.52706525684159 127.0553202197776,37.52691359253615 127.0545883018562,37.5256490354425 127.05439196926,37.52542595885373 127.0541056303646,37.52523446564444 127.0538134133556,37.52510752787056 127.0476025546723,37.5243145034955 127.0474995544116,37.52420918190887 127.047423656217,37.52402397348461 127.0563561883441,37.50695726486741 127.056536981932,37.50680194716571 127.0569275660454,37.50681598434013 127.0629937381459,37.50859785186805 127.0648700161263,37.50522003003944 127.0647630842553,37.50515404202457 127.0589526070071,37.50321901384999</coordinates></LineString></Placemark>
-<Placemark><name>제목 없는 위치표시</name><Point><coordinates>127.1027449166605,37.6135955533537</coordinates></Point></Placemark>
+<Placemark><name>중랑차고지</name><Point><coordinates>127.1027449166605,37.6135955533537</coordinates></Point></Placemark>
 <Placemark><name>신내데시앙</name><Point><coordinates>127.1010083925326,37.6104763079155</coordinates></Point></Placemark>
+<Placemark><name>삼성역(회차)</name><description>회차점</description><Point><coordinates>127.0589526070071,37.50321901384999</coordinates></Point></Placemark>
 </Document></kml></script>
 <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 <script>
@@ -239,7 +295,7 @@
     return cur + (d > 0 ? Math.min(d, up * dt) : Math.max(d, -down * dt));
   };
   const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-  const setText = (node, txt) => { if (node.textContent !== txt) node.textContent = txt; };
+  const setText = (node, txt) => { if (node && node.textContent !== txt) node.textContent = txt; };
   const M_PER_DEG = 111320;
   const notice = (title, body) => {
     const n = $('notice');
@@ -250,55 +306,49 @@
   };
 
   if (typeof maplibregl === 'undefined') {
-    notice('지도 라이브러리를 불러오지 못했어요',
-      '인터넷 연결을 확인하거나, 미리보기 창이 아닌 일반 브라우저(또는 GitHub Pages 주소)에서 열어 보세요.');
+    notice('지도 라이브러리를 불러오지 못했어요', '인터넷 연결을 확인하거나 일반 브라우저에서 열어 보세요.');
     return;
   }
 
-  // ───────── 설정 (브라우저에 저장) ─────────
+  // ───────── 차량 데이터 로드 (car/vehicles.js 우선, 없으면 기본값) ─────────
+  const FALLBACK_VEHICLES = {
+    low: {
+      id: 'low', name: '에어로시티 (저상)', trans: 'auto',
+      wheelbase: 6.0, maxSteer: 35, latLimit: 3.0, seats: 30, capacity: 60,
+      gearLimit: [0, 18, 35, 52, 72, 88],
+      gearRec: [null, [0, 12], [12, 28], [28, 45], [45, 65], [65, 85]],
+      gearAcc: [0, 1.2, 1.0, 0.88, 0.78, 0.72],
+      reverseLimit: 8, idle: 650, redline: 2600,
+      brake: { service: 2.0, full: 4.2, airLag: 0.2, fullLag: 0.08 },
+      retarder: { decel: [0, 0.6, 1.0, 1.4] }
+    },
+    high: {
+      id: 'high', name: '에어로시티 (고상)', trans: 'manual',
+      wheelbase: 6.0, maxSteer: 35, latLimit: 3.0, seats: 34, capacity: 65,
+      gearLimit: [0, 18, 35, 52, 72, 88],
+      gearRec: [null, [0, 12], [12, 28], [28, 45], [45, 65], [65, 85]],
+      gearAcc: [0, 1.3, 1.1, 0.95, 0.85, 0.8],
+      reverseLimit: 8, idle: 650, redline: 2600,
+      brake: { service: 2.2, full: 4.5, airLag: 0.15, fullLag: 0.08 },
+      retarder: null
+    }
+  };
+  const VEHICLES = (window.BUS_VEHICLES && Object.keys(window.BUS_VEHICLES).length)
+    ? window.BUS_VEHICLES : FALLBACK_VEHICLES;
+
+  // ───────── 설정 및 선택 상태 ─────────
   const KEY = 'map-drive-settings-v4';
   const loadS = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const saveS = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-  const S = Object.assign({ trans: 'auto', trail: true, zoom: 17, dir: 'up' }, loadS());
-  if (S.trans !== 'manual') S.trans = 'auto';
-  if (S.dir !== 'down') S.dir = 'up';
+  const S = Object.assign({ vehicleId: Object.keys(VEHICLES)[0], routeFile: '2416.kml', trail: true, zoom: 17 }, loadS());
+  if (!VEHICLES[S.vehicleId]) S.vehicleId = Object.keys(VEHICLES)[0];
   S.zoom = clamp(Math.round((Number(S.zoom) || 17) * 2) / 2, 15.5, 19);
 
-  // ───────── 노선 / 시작 위치 ─────────
-  // GitHub Pages 동일 저장소의 route 폴더 내 KML 파일 경로
-  const ROUTE_FILES = {
-    up: 'route/up.kml',
-    down: 'route/down.kml'
-  };
-  const START_ON_ROUTE = true;
-  const START = { lat: 37.6136, lng: 127.1019, heading: 0 };
-
-  // ───────── 차량 제원 / 튜닝 값 ─────────
-  const BASE = {
-    wheelbase: 6.0,
-    maxSteer: 35,
-    latLimit: 3.0,
-    seats: 30, capacity: 60,
-    gearLimit: [0, 18, 35, 52, 72, 88],
-    gearRec: [null, [0, 12], [12, 28], [28, 45], [45, 65], [65, 85]],
-    reverseLimit: 8,
-    idle: 650, redline: 2600
-  };
-  const VEHICLES = {
-    high: Object.assign({}, BASE, {
-      name: '에어로시티 (고상)',
-      gearAcc: [0, 1.3, 1.1, 0.95, 0.85, 0.8],
-      brake: { service: 2.2, full: 4.5, airLag: 0.15, fullLag: 0.08 },
-      retarder: null
-    }),
-    low: Object.assign({}, BASE, {
-      name: '에어로시티 (저상)',
-      gearAcc: [0, 1.2, 1.0, 0.88, 0.78, 0.72],
-      brake: { service: 2.0, full: 4.2, airLag: 0.2, fullLag: 0.08 },
-      retarder: { decel: [0, 0.6, 1.0, 1.4] }
-    })
-  };
-  const MAXG = BASE.gearLimit.length - 1;
+  let AVAILABLE_ROUTES = [
+    { file: '2222(강남방면).kml', name: '2222 (강남방면)' },
+    { file: '2222(차고지방면).kml', name: '2222 (차고지방면)' },
+    { file: '2416.kml', name: '2416 (내장 기본 노선)' }
+  ];
 
   const CFG = {
     brake: 2.0, emergency: 4.2,
@@ -306,23 +356,31 @@
     thrUp: 0.9, thrDown: 2.5,
     brkUp: 1.0, brkDown: 3.0,
     emgUp: 6.0, emgDown: 4.0,
-    steerRate: 45,
-    steerReturn: 70,
-    comfortOk: 2.2,
-    comfortWarn: 3.5,
+    steerRate: 45, steerReturn: 70,
+    comfortOk: 2.2, comfortWarn: 3.5,
     stopRadius: 30
   };
 
-  let VEH, IDLE, REDLINE;
+  let VEH = VEHICLES[S.vehicleId];
+  let IDLE = VEH.idle, REDLINE = VEH.redline;
+  let MAXG = VEH.gearLimit.length - 1;
+
   function applyVehicle() {
-    VEH = S.trans === 'manual' ? VEHICLES.high : VEHICLES.low;
-    IDLE = VEH.idle; REDLINE = VEH.redline;
+    VEH = VEHICLES[S.vehicleId] || Object.values(VEHICLES)[0];
+    IDLE = VEH.idle;
+    REDLINE = VEH.redline;
+    MAXG = VEH.gearLimit.length - 1;
     CFG.brake = VEH.brake.service;
     CFG.emergency = VEH.brake.full;
+    const isManual = VEH.trans === 'manual';
+    document.body.classList.toggle('manual', isManual);
+    setText($('vehname'), VEH.name + (isManual ? ' · 수동' : ' · 자동'));
+    setText($('pax-cap'), '정원 ' + VEH.capacity + '명');
   }
   applyVehicle();
 
-  // ───────── 지도 (OpenFreeMap + MapLibre) ─────────
+  // ───────── 지도 초기화 ─────────
+  const START = { lat: 37.6136, lng: 127.1019, heading: 0 };
   const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
   let map, mapReady = false;
   try {
@@ -336,7 +394,7 @@
       attributionControl: { compact: true }
     });
   } catch (e) {
-    notice('지도를 표시할 수 없어요', '이 브라우저에서 WebGL을 사용할 수 없는 것 같아요. 다른 브라우저에서 열어 보세요.');
+    notice('지도를 표시할 수 없어요', 'WebGL을 지원하는 브라우저에서 열어 주세요.');
     return;
   }
 
@@ -361,28 +419,28 @@
     });
     drawRoute();
   });
-  map.on('error', () => {
-    if (!mapReady) {
-      notice('지도를 불러오지 못했어요',
-        '외부 지도 데이터를 막는 환경(예: 미리보기 창)에서는 지도가 보이지 않아요. 일반 브라우저나 GitHub Pages 주소에서 열어 보세요.');
-    }
-  });
 
-  // ───────── 상태 ─────────
+  // ───────── 상태 변수 ─────────
   const car = {
     lat: START.lat, lng: START.lng, heading: START.heading, v: 0, gear: 1, rpm: IDLE,
-    thr: 0, brk: 0, emg: 0, pSvc: 0, pEmg: 0, steer: 0, aLong: 0, ret: 0
+    thr: 0, brk: 0, emg: 0, pSvc: 0, pEmg: 0, steer: 0, aLong: 0, ret: 0,
+    frontDoor: false, rearDoor: false, parkBrake: true
   };
-  const doors = { front: false, rear: false };
   const keys = { up: false, down: false, left: false, right: false, hand: false, clutch: false };
-  const pax = { seated: 0, standing: 0, fell: 0, skipped: 0, fallUntil: 0, lastFall: 0, last: null, stopBell: false };
+  const pax = {
+    seated: 0, standing: 0, fell: 0, skipped: 0,
+    fallUntil: 0, lastFall: 0, last: null,
+    stopRequested: false // 하차벨 상태
+  };
   let route = null;
+  let currentRouteFile = S.routeFile;
   let stops = [];
+  let stopMarkers = [];
   let dwell = null;
   let trailPts = [];
   let frame = 0, uiTick = 0;
   let dangerTime = 0, lastFall = -99;
-  let paused = false;
+  let started = false, paused = true;
 
   // ───────── 알림 ─────────
   let toastTimer;
@@ -391,42 +449,44 @@
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
   }
 
-  // ───────── 출입문 (F: 앞문 / G: 뒷문) ─────────
-  function updateDoorUI() {
-    const df = $('door-f'), dg = $('door-g');
-    setText(df, doors.front ? '앞문(F) 열림' : '앞문(F) 닫힘');
-    df.classList.toggle('open', doors.front);
-    setText(dg, doors.rear ? '뒷문(G) 열림' : '뒷문(G) 닫힘');
-    dg.classList.toggle('open', doors.rear);
+  // ───────── 도어 / 주차브레이크 UI 갱신 ─────────
+  function updateDoorAndParkUI() {
+    const fEl = $('ind-front'), rEl = $('ind-rear'), pEl = $('ind-park');
+    setText(fEl, car.frontDoor ? '앞문 열림' : '앞문 닫힘');
+    fEl.classList.toggle('door-open', car.frontDoor);
+
+    setText(rEl, car.rearDoor ? '뒷문 열림' : '뒷문 닫힘');
+    rEl.classList.toggle('door-open', car.rearDoor);
+
+    setText(pEl, car.parkBrake ? 'PARK 체결' : 'PARK 해제');
+    pEl.classList.toggle('park-on', car.parkBrake);
   }
 
   function toggleDoor(which) {
-    if (Math.abs(car.v) > 0.4) {
-      toast('차량이 완전히 정차한 뒤에 문을 열 수 있어요');
+    if (Math.abs(car.v) > 0.5) {
+      toast('정차한 상태에서만 문을 열 수 있습니다');
       return;
     }
-    doors[which] = !doors[which];
-    updateDoorUI();
-    const label = which === 'front' ? '앞문(승차)' : '뒷문(하차)';
-    toast(label + (doors[which] ? ' 개방' : ' 폐쇄'));
-
-    // 정류소 반경 내에서 문을 열면 즉시 승하차 프로세스 시작
-    if (doors[which] && !dwell) {
-      const near = stops.find(st => st.state === 'pending' && distM(car.lat, car.lng, st.lat, st.lng) <= CFG.stopRadius);
-      if (near) startDwell(near);
+    if (which === 'front') car.frontDoor = !car.frontDoor;
+    else car.rearDoor = !car.rearDoor;
+    updateDoorAndParkUI();
+    // 문을 열면 하차벨 소등
+    if (car.frontDoor || car.rearDoor) {
+      pax.stopRequested = false;
+      $('stop-bell').classList.remove('active');
     }
   }
 
-  // ───────── 하차벨 (STOP 표시등) ─────────
-  function setStopBell(on) {
-    pax.stopBell = on;
-    $('stop-bell').classList.toggle('on', on);
+  function toggleParkBrake() {
+    car.parkBrake = !car.parkBrake;
+    updateDoorAndParkUI();
+    toast(car.parkBrake ? '주차브레이크 체결 (P)' : '주차브레이크 해제 (P)');
   }
 
-  // ───────── KML 노선 / 정류소 ─────────
+  // ───────── KML 파싱 및 회차점 전환 ─────────
   function parseKML(text) {
     const decode = s => s.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').trim();
@@ -434,7 +494,9 @@
     const pms = text.match(/<Placemark\b[\s\S]*?<\/Placemark>/g) || [];
     for (const pm of pms) {
       const nm = pm.match(/<name>([\s\S]*?)<\/name>/);
+      const dm = pm.match(/<description>([\s\S]*?)<\/description>/);
       const name = nm ? decode(nm[1]) : '';
+      const desc = dm ? decode(dm[1]) : '';
       const cm = pm.match(/<coordinates>([\s\S]*?)<\/coordinates>/);
       if (!cm) continue;
       const pts = cm[1].trim().split(/\s+/)
@@ -442,7 +504,9 @@
         .filter(a => a.length >= 2 && isFinite(a[0]) && isFinite(a[1]))
         .map(a => [a[0], a[1]]);
       if (/<LineString\b/.test(pm) && pts.length > 1) out.lines.push({ name, pts });
-      else if (/<Point\b/.test(pm) && pts.length === 1) out.points.push({ name, lng: pts[0][0], lat: pts[0][1] });
+      else if (/<Point\b/.test(pm) && pts.length === 1) {
+        out.points.push({ name, desc, lng: pts[0][0], lat: pts[0][1] });
+      }
     }
     return out;
   }
@@ -472,23 +536,69 @@
   function setupRoute(parsed) {
     if (!parsed.lines.length) return false;
     const line = parsed.lines.reduce((a, b) => (b.pts.length > a.pts.length ? b : a));
-    route = { name: line.name || (S.dir === 'up' ? '상행선' : '하행선'), pts: line.pts };
-    stops = parsed.points.map((p, idx) => Object.assign(
-      { name: p.name, lng: p.lng, lat: p.lat },
-      projectOnRoute(p.lng, p.lat),
-      {
-        state: 'pending',
-        inside: false,
-        bellChecked: false,
-        waiting: idx === 0 ? randInt(4, 12) : randInt(1, 11), // 각 정류소 대기 승객 수
-        el: null,
-        waitEl: null,
-        marker: null
-      }
-    ));
+    route = { name: line.name || currentRouteFile.replace(/\.kml$/i, ''), pts: line.pts };
+    stops = parsed.points.map(p => {
+      const isTurnaround = /회차점/.test(p.desc || '') || /회차점/.test(p.name || '');
+      return Object.assign(
+        {
+          name: p.name,
+          desc: p.desc,
+          lng: p.lng,
+          lat: p.lat,
+          isTurnaround,
+          waiting: isTurnaround ? 0 : randInt(2, 12), // 정류소별 대기 승객 수
+          wantOut: 0,
+          doneOut: 0,
+          doneIn: 0
+        },
+        projectOnRoute(p.lng, p.lat),
+        { state: 'pending', still: 0, inside: false, el: null, marker: null }
+      );
+    });
     stops.sort((a, b) => a.s - b.s);
-    stops.forEach((st, i) => { if (!st.name || /^제목 없는/.test(st.name)) st.name = '정류소 ' + (i + 1); });
+    stops.forEach((st, i) => {
+      if (!st.name || /^제목 없는/.test(st.name)) st.name = '정류소 ' + (i + 1);
+    });
     return true;
+  }
+
+  function clearMapRoute() {
+    stopMarkers.forEach(m => m.remove());
+    stopMarkers = [];
+    if (!mapReady) return;
+    if (map.getLayer('route')) map.removeLayer('route');
+    if (map.getLayer('route-casing')) map.removeLayer('route-casing');
+    if (map.getSource('route')) map.removeSource('route');
+  }
+
+  function updateStopMarkerLabel(st) {
+    if (!st.el) return;
+    const waitSpan = st.el.querySelector('.wait-cnt');
+    if (waitSpan) {
+      if (st.isTurnaround) waitSpan.textContent = '[회차점]';
+      else if (st.state === 'done') waitSpan.textContent = '(완료)';
+      else waitSpan.textContent = '대기 ' + st.waiting + '명';
+    }
+  }
+
+  function drawRoute() {
+    if (!mapReady || !route) return;
+    clearMapRoute();
+    map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: route.pts } } });
+    const layout = { 'line-cap': 'round', 'line-join': 'round' };
+    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout, paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.9 } }, 'trail');
+    map.addLayer({ id: 'route', type: 'line', source: 'route', layout, paint: { 'line-color': '#1976d2', 'line-width': 5, 'line-opacity': 0.85 } }, 'trail');
+
+    stops.forEach((st, i) => {
+      const el = document.createElement('div');
+      el.className = 'stop' + (st.isTurnaround ? ' turnaround' : '');
+      el.innerHTML = `<div class="dot">${i + 1}</div><div class="lab">${st.name}<span class="wait-cnt"></span></div>`;
+      st.el = el;
+      updateStopMarkerLabel(st);
+      const marker = new maplibregl.Marker({ element: el }).setLngLat([st.lng, st.lat]).addTo(map);
+      st.marker = marker;
+      stopMarkers.push(marker);
+    });
   }
 
   function startFromRoute() {
@@ -497,221 +607,171 @@
     const a = toXY(p0[0], p0[1]);
     for (let i = 1; i < route.pts.length; i++) {
       const b = toXY(route.pts[i][0], route.pts[i][1]);
-      if (Math.hypot(b[0] - a[0], b[1] - a[1]) >= 40) {
+      if (Math.hypot(b[0] - a[0], b[1] - a[1]) >= 30) {
         START.heading = (Math.atan2(b[0] - a[0], b[1] - a[1]) * 180 / Math.PI + 360) % 360;
         break;
       }
     }
-  }
-
-  function placeAtStart() {
     car.lat = START.lat; car.lng = START.lng; car.heading = START.heading;
-    map.jumpTo({ center: [START.lng, START.lat], zoom: S.zoom });
+    if (mapReady) map.jumpTo({ center: [START.lng, START.lat], zoom: S.zoom });
   }
 
-  function clearRouteGraphics() {
-    stops.forEach(st => { if (st.marker) st.marker.remove(); });
-    if (!mapReady) return;
-    if (map.getLayer('route')) map.removeLayer('route');
-    if (map.getLayer('route-casing')) map.removeLayer('route-casing');
-    if (map.getSource('route')) map.removeSource('route');
-  }
-
-  function drawRoute() {
-    if (!mapReady || !route || map.getSource('route')) return;
-    map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: route.pts } } });
-    const layout = { 'line-cap': 'round', 'line-join': 'round' };
-    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout, paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.9 } }, 'trail');
-    map.addLayer({ id: 'route', type: 'line', source: 'route', layout, paint: { 'line-color': '#1976d2', 'line-width': 5, 'line-opacity': 0.85 } }, 'trail');
-    stops.forEach((st, i) => {
-      if (st.marker) return;
-      const el = document.createElement('div');
-      el.className = 'stop';
-      el.innerHTML = '<div class="wait"></div><div class="dot"></div><div class="lab"></div>';
-      st.waitEl = el.children[0];
-      el.children[1].textContent = String(i + 1);
-      el.children[2].textContent = st.name;
-      st.el = el;
-      updateStopWaitLabel(st);
-      st.marker = new maplibregl.Marker({ element: el }).setLngLat([st.lng, st.lat]).addTo(map);
-    });
-  }
-
-  function updateStopWaitLabel(st) {
-    if (!st.waitEl) return;
-    if (st.state === 'pending' && st.waiting > 0) {
-      setText(st.waitEl, '대기 ' + st.waiting + '명');
-    } else {
-      setText(st.waitEl, '');
-    }
-  }
-
-  async function loadRoute() {
-    clearRouteGraphics();
-    const targetFile = ROUTE_FILES[S.dir];
+  async function loadRouteFile(filename, moveCarToStart = true) {
+    currentRouteFile = filename;
     let text = null;
     try {
-      const r = await fetch(targetFile, { cache: 'no-cache' });
+      const r = await fetch('route/' + encodeURIComponent(filename), { cache: 'no-cache' });
       if (r.ok) text = await r.text();
     } catch (e) {}
-
     if (!text || !/<Placemark/.test(text)) {
       text = $('kml-fallback').textContent;
-      toast(targetFile + ' 파일을 찾지 못해 기본 노선을 불러왔어요');
     }
-
     if (!setupRoute(parseKML(text))) {
-      setText($('route-name'), '노선 정보를 읽지 못했어요');
+      setText($('route-name'), '노선 로드 실패');
       return;
     }
-    const dirLabel = S.dir === 'up' ? ' [상행]' : ' [하행]';
-    setText($('route-name'), route.name + dirLabel);
-    if (START_ON_ROUTE) {
-      startFromRoute();
-      placeAtStart();
-    }
+    setText($('route-name'), route.name);
+    if (moveCarToStart) startFromRoute();
     drawRoute();
   }
 
-  // ───────── 승객 / 정류소 승하차 (F: 앞문 승차, G: 뒷문 하차) ─────────
+  // 회차점 도착 시 같은 번호의 반대 방면 KML 파일로 자동 전환
+  async function switchTurnaroundRoute() {
+    const numMatch = currentRouteFile.match(/^(\d+)/);
+    if (!numMatch) return;
+    const routeNum = numMatch[1];
+    const nextRoute = AVAILABLE_ROUTES.find(r => r.file.startsWith(routeNum) && r.file !== currentRouteFile);
+    if (!nextRoute) {
+      toast('회차점에 도착했습니다! (연결된 반대 방면 KML 파일이 없습니다)');
+      return;
+    }
+    toast(`회차점 도착! 노선이 [${nextRoute.name}](으)로 자동 변경됩니다.`);
+    // 기존 탑승객 전원 하차 처리
+    pax.seated = 0; pax.standing = 0;
+    pax.stopRequested = false;
+    $('stop-bell').classList.remove('active');
+    await loadRouteFile(nextRoute.file, false);
+  }
+
+  // ───────── 초기화면(차량 & 노선 선택) 설정 ─────────
+  async function initStartMenu() {
+    const vSel = $('sel-vehicle');
+    vSel.innerHTML = '';
+    Object.values(VEHICLES).forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.id;
+      opt.textContent = `${v.name} (${v.trans === 'manual' ? '수동' : '자동'} · 정원 ${v.capacity}명)`;
+      if (v.id === S.vehicleId) opt.selected = true;
+      vSel.appendChild(opt);
+    });
+
+    try {
+      const res = await fetch('route/routes.json', { cache: 'no-cache' });
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list) && list.length) AVAILABLE_ROUTES = list;
+      }
+    } catch (e) {}
+
+    const rSel = $('sel-route');
+    rSel.innerHTML = '';
+    AVAILABLE_ROUTES.forEach(rt => {
+      const opt = document.createElement('option');
+      opt.value = rt.file;
+      opt.textContent = rt.name || rt.file;
+      if (rt.file === S.routeFile) opt.selected = true;
+      rSel.appendChild(opt);
+    });
+  }
+
+  $('btn-start').addEventListener('click', async () => {
+    S.vehicleId = $('sel-vehicle').value;
+    S.routeFile = $('sel-route').value;
+    saveS();
+    applyVehicle();
+    await loadRouteFile(S.routeFile, true);
+    resetSimulationState();
+    $('start-screen').hidden = true;
+    started = true;
+    paused = false;
+    last = performance.now();
+    toast('운행을 시작합니다. P키로 주차브레이크를 해제하세요.');
+  });
+
+  $('open-menu').addEventListener('click', e => {
+    e.currentTarget.blur();
+    paused = true;
+    $('start-screen').hidden = false;
+  });
+
+  // ───────── 승객 및 정류소 승하차 (앞문 F / 뒷문 G 연동) ─────────
   const paxTotal = () => pax.seated + pax.standing;
+
   function addPax(k) {
     for (let i = 0; i < k; i++) {
-      if (pax.seated < VEH.seats && Math.random() < 0.75) pax.seated++; else pax.standing++;
+      if (pax.seated < VEH.seats && Math.random() < 0.75) pax.seated++;
+      else pax.standing++;
     }
   }
   function removePax(k) {
     for (let i = 0; i < k; i++) {
       const n = paxTotal();
       if (!n) break;
-      if (Math.random() < pax.seated / n) pax.seated--; else pax.standing--;
+      if (Math.random() < pax.seated / n) pax.seated--;
+      else pax.standing--;
     }
   }
   function rebalanceSeats() {
-    while (pax.seated < VEH.seats && pax.standing > 0 && Math.random() < 0.6) { pax.standing--; pax.seated++; }
+    while (pax.seated < VEH.seats && pax.standing > 0 && Math.random() < 0.6) {
+      pax.standing--; pax.seated++;
+    }
   }
 
-  function startDwell(st) {
+  // 정류소 접근 시 하차 승객이 있으면 하차벨 점등
+  function checkStopBellTrigger() {
+    if (paxTotal() === 0 || pax.stopRequested) return;
+    const nextStop = stops.find(s => s.state === 'pending');
+    if (!nextStop) return;
+    const d = distM(car.lat, car.lng, nextStop.lat, nextStop.lng);
+    // 다음 정류소 45m~130m 전방에서 하차 희망 승객이 있으면 벨을 누름
+    if (d > 45 && d < 130 && !nextStop.bellChecked) {
+      nextStop.bellChecked = true;
+      if (nextStop.isTurnaround || Math.random() < 0.75) {
+        pax.stopRequested = true;
+        $('stop-bell').classList.add('active');
+        toast('띵동! 다음 정류소 하차벨이 눌렸습니다.');
+      }
+    }
+  }
+
+  function prepareStopExchange(st) {
+    if (st.prepared) return;
+    st.prepared = true;
     const n = paxTotal();
-    // 하차벨이 울렸으면 최소 1명 이상 하차
-    let out = n ? Math.min(n, Math.round(n * (0.1 + Math.random() * 0.35))) : 0;
-    if (pax.stopBell && n > 0 && out === 0) out = 1;
-    const want = st.waiting;
-    dwell = {
-      st, out, want,
-      doneOut: 0, doneIn: 0,
-      tOut: 0, tIn: 0,
-      outFinished: out === 0,
-      inFinished: want === 0,
-      hintShown: false
-    };
-    toast(st.name + ' 정차 · F(앞문) / G(뒷문)를 열어 승하차하세요');
-  }
-
-  function finishStop(d, aborted) {
-    const st = d.st;
-    st.state = 'done';
-    st.waiting = Math.max(0, st.waiting - d.doneIn);
-    updateStopWaitLabel(st);
-    if (st.el) st.el.classList.add('done');
-    pax.last = { name: st.name, out: d.doneOut, inn: d.doneIn, aborted };
-    rebalanceSeats();
-    if (!aborted) {
-      toast(st.name + ' 승하차 완료 · 하차 ' + d.doneOut + '명 · 승차 ' + d.doneIn + '명');
+    if (st.isTurnaround) {
+      st.wantOut = n; // 회차점에서는 전원 하차
+    } else if (pax.stopRequested) {
+      st.wantOut = n ? Math.min(n, Math.max(1, Math.round(n * (0.15 + Math.random() * 0.4)))) : 0;
+    } else {
+      st.wantOut = n ? Math.min(n, Math.floor(Math.random() * Math.max(1, n * 0.25))) : 0;
     }
-    dwell = null;
-  }
-
-  function runDwell(dt) {
-    const d = dwell;
-    // 문이 열린 채 출발 감지
-    if (Math.abs(car.v) > 1.0) {
-      if (doors.front || doors.rear) {
-        toast('출입문이 열린 채 출발했어요! 문을 자동으로 닫습니다');
-        doors.front = false;
-        doors.rear = false;
-        updateDoorUI();
-      }
-      finishStop(d, true);
-      return;
-    }
-
-    // 뒷문(G)이 열려 있을 때 하차 진행
-    if (doors.rear && !d.outFinished) {
-      d.tOut += dt;
-      const targetOut = Math.min(d.out, Math.floor(d.tOut / 0.55));
-      if (targetOut > d.doneOut) {
-        removePax(targetOut - d.doneOut);
-        d.doneOut = targetOut;
-      }
-      if (d.doneOut >= d.out) {
-        d.outFinished = true;
-        if (pax.stopBell) setStopBell(false); // 하차 완료 시 하차벨 소등
-        toast('하차 완료 · 뒷문(G)을 닫아주세요');
-      }
-    } else if (!doors.rear && d.out > 0 && !d.outFinished && !d.hintShown) {
-      toast('하차 승객이 있습니다. G키로 뒷문을 열어주세요');
-      d.hintShown = true;
-    }
-
-    // 앞문(F)이 열려 있을 때 승차 진행
-    if (doors.front && !d.inFinished) {
-      d.tIn += dt;
-      const room = Math.max(0, VEH.capacity - paxTotal());
-      if (room === 0) {
-        d.inFinished = true;
-        toast('만차입니다! 더 이상 승차할 수 없어요');
-      } else {
-        const targetIn = Math.min(d.want, Math.floor(d.tIn / 0.6));
-        if (targetIn > d.doneIn) {
-          const actualAdd = Math.min(targetIn - d.doneIn, room);
-          addPax(actualAdd);
-          d.doneIn += actualAdd;
-          d.st.waiting = Math.max(0, d.st.waiting - actualAdd);
-          updateStopWaitLabel(d.st);
-        }
-        if (d.doneIn >= d.want) {
-          d.inFinished = true;
-          toast('승차 완료 · 앞문(F)을 닫고 출발하세요');
-        }
-      }
-    } else if (!doors.front && d.want > 0 && !d.inFinished && d.outFinished && !d.hintShown) {
-      toast('대기 승객 ' + d.want + '명이 있습니다. F키로 앞문을 열어주세요');
-      d.hintShown = true;
-    }
-
-    // 승하차가 모두 끝나고 앞문·뒷문이 모두 닫히면 정류소 처리 완료
-    if (d.outFinished && d.inFinished && !doors.front && !doors.rear) {
-      finishStop(d, false);
-    }
+    st.doneOut = 0;
+    st.doneIn = 0;
+    st.stepTimer = 0;
   }
 
   function updateStops(dt) {
-    if (dwell) { runDwell(dt); return; }
+    checkStopBellTrigger();
 
-    // 다음 정류소 접근 시 승객 하차벨 작동 판정 (반경 140m 이내 진입 시)
-    const nx = stops.find(s => s.state === 'pending');
-    if (nx && !nx.bellChecked && paxTotal() > 0) {
-      const distToNext = distM(car.lat, car.lng, nx.lat, nx.lng);
-      if (distToNext <= 140) {
-        nx.bellChecked = true;
-        if (!pax.stopBell && Math.random() < 0.72) {
-          setStopBell(true);
-          toast('딩동! 이번 정류소(' + nx.name + ') 하차벨이 눌렸습니다');
-        }
-      }
-    }
-
+    // 현재 정차 반경 내 정류소 찾기
+    let activeStop = null;
     for (const st of stops) {
       if (st.state !== 'pending') continue;
       const d = distM(car.lat, car.lng, st.lat, st.lng);
       if (d <= CFG.stopRadius) {
         st.inside = true;
-        // 정류소 반경 안에서 정차 후 F 또는 G 문을 열면 승하차 시작
-        if (Math.abs(car.v) < 0.3 && (doors.front || doors.rear)) {
-          startDwell(st);
-          return;
-        }
+        activeStop = st;
+        break;
       } else if (st.inside && d > CFG.stopRadius + 15) {
         st.state = 'passed';
         pax.skipped++;
@@ -719,12 +779,88 @@
         toast(st.name + ' 무정차 통과');
       }
     }
+
+    const box = $('boarding-box');
+    const doorOpen = car.frontDoor || car.rearDoor;
+
+    if (!activeStop) {
+      dwell = null;
+      if (doorOpen) {
+        box.className = 'warn';
+        setText(box, '정류소 외 구역 · 문 열림');
+      } else {
+        box.className = '';
+        setText(box, '문 닫힘 · 운행 중');
+      }
+      return;
+    }
+
+    // 정류소 반경 안
+    if (Math.abs(car.v) > 0.3) {
+      box.className = '';
+      setText(box, `${activeStop.name} 진입 · 정차 후 문을 여세요`);
+      return;
+    }
+
+    prepareStopExchange(activeStop);
+    dwell = activeStop;
+
+    if (!doorOpen) {
+      box.className = 'warn';
+      setText(box, `${activeStop.name} 정차 중 · F(앞문) / G(뒷문) 개방 필요`);
+      return;
+    }
+
+    // 문이 열려 있을 때 승하차 진행 (0.45초마다 1명씩 이동)
+    activeStop.stepTimer += dt;
+    const canAlight = (car.frontDoor || car.rearDoor) && activeStop.doneOut < activeStop.wantOut;
+    const canBoard = car.frontDoor && activeStop.waiting > 0 && paxTotal() < VEH.capacity;
+
+    if (activeStop.stepTimer >= 0.45) {
+      activeStop.stepTimer = 0;
+      if (canAlight) {
+        removePax(1);
+        activeStop.doneOut++;
+      }
+      if (canBoard && paxTotal() < VEH.capacity) {
+        addPax(1);
+        activeStop.waiting--;
+        activeStop.doneIn++;
+        updateStopMarkerLabel(activeStop);
+      }
+    }
+
+    // 상태 표시 업데이트 (내리고 있음 / 타고 있음)
+    const statusParts = [];
+    if (canAlight) statusParts.push(`내리고 있음 (${activeStop.doneOut}/${activeStop.wantOut}명)`);
+    if (canBoard) statusParts.push(`타고 있음 (잔여 ${activeStop.waiting}명)`);
+    else if (!car.frontDoor && activeStop.waiting > 0) statusParts.push(`승차 대기 ${activeStop.waiting}명 (앞문 필요)`);
+
+    if (statusParts.length > 0) {
+      box.className = 'active';
+      setText(box, statusParts.join(' · '));
+    } else {
+      box.className = '';
+      setText(box, `${activeStop.name} 승하차 완료 · 문을 닫고 출발하세요`);
+      if (activeStop.state === 'pending') {
+        activeStop.state = 'done';
+        if (activeStop.el) activeStop.el.classList.add('done');
+        updateStopMarkerLabel(activeStop);
+        rebalanceSeats();
+        pax.last = { name: activeStop.name, out: activeStop.doneOut, inn: activeStop.doneIn };
+
+        // 회차점일 경우 노선 자동 전환
+        if (activeStop.isTurnaround) {
+          switchTurnaroundRoute();
+        }
+      }
+    }
   }
 
-  // ───────── 변속 / 리타더 ─────────
+  // ───────── 변속 / 리타더 / 줌 ─────────
   const GEAR_SEQ = [-1, 0, ...Array.from({ length: MAXG }, (_, i) => i + 1)];
   function shiftGear(d) {
-    if (S.trans !== 'manual') return;
+    if (VEH.trans !== 'manual') return;
     if (!keys.clutch) { toast('클러치(Shift)를 누른 채 변속하세요'); return; }
     let i = GEAR_SEQ.indexOf(car.gear) + d;
     i = clamp(i, 0, GEAR_SEQ.length - 1);
@@ -732,11 +868,9 @@
     car.gear = GEAR_SEQ[i];
   }
   function retarderBy(d) {
-    if (!VEH.retarder) { toast('수동(고상)에는 리타더가 없어요'); return; }
+    if (!VEH.retarder) { toast('이 차량에는 리타더가 없습니다'); return; }
     car.ret = clamp(car.ret + d, 0, VEH.retarder.decel.length - 1);
   }
-
-  // ───────── 줌 ─────────
   function zoomBy(d) {
     const z = clamp(S.zoom + d * 0.5, 15.5, 19);
     if (z === S.zoom) return;
@@ -744,15 +878,15 @@
     map.jumpTo({ center: [car.lng, car.lat], zoom: z });
   }
 
-  // ───────── 정지화면 ─────────
   function setPause(p) {
+    if (!started) return;
     paused = p;
     $('pause').hidden = !p;
     Object.keys(keys).forEach(k => keys[k] = false);
     last = performance.now();
   }
 
-  // ───────── 입력 (PC 키보드) ─────────
+  // ───────── 키보드 입력 ─────────
   const keyMap = {
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
@@ -761,11 +895,12 @@
   const inForm = el => ['INPUT', 'SELECT', 'TEXTAREA'].includes(el && el.tagName);
 
   addEventListener('keydown', e => {
-    if (inForm(e.target)) return;
+    if (inForm(e.target) || !started) return;
     if (e.code === 'Slash' || e.key === '/') { if (!e.repeat) setPause(!paused); e.preventDefault(); return; }
     if (paused) return;
     if (e.code === 'KeyF') { if (!e.repeat) toggleDoor('front'); return; }
     if (e.code === 'KeyG') { if (!e.repeat) toggleDoor('rear'); return; }
+    if (e.code === 'KeyP') { if (!e.repeat) toggleParkBrake(); return; }
     if (e.code === 'KeyR' || e.code === 'KeyT') { if (!e.repeat) retarderBy(e.code === 'KeyT' ? 1 : -1); return; }
     if (e.code === 'KeyE' || e.code === 'KeyQ') { if (!e.repeat) shiftGear(e.code === 'KeyE' ? 1 : -1); return; }
     if (e.code === 'KeyZ' || e.code === 'KeyX') { if (!e.repeat) zoomBy(e.code === 'KeyZ' ? 1 : -1); return; }
@@ -779,71 +914,44 @@
   });
   addEventListener('blur', () => Object.keys(keys).forEach(k => keys[k] = false));
 
-  function resetAll() {
+  function resetSimulationState() {
     Object.assign(car, {
       lat: START.lat, lng: START.lng, heading: START.heading, v: 0, rpm: IDLE,
-      thr: 0, brk: 0, emg: 0, pSvc: 0, pEmg: 0, steer: 0, aLong: 0, ret: 0
+      thr: 0, brk: 0, emg: 0, pSvc: 0, pEmg: 0, steer: 0, aLong: 0, ret: 0,
+      frontDoor: false, rearDoor: false, parkBrake: true
     });
-    car.gear = S.trans === 'manual' ? 0 : 1;
-    doors.front = false;
-    doors.rear = false;
-    updateDoorUI();
-    setStopBell(false);
+    car.gear = VEH.trans === 'manual' ? 0 : 1;
+    updateDoorAndParkUI();
     trailPts = []; setTrail([]);
-    Object.assign(pax, { seated: 0, standing: 0, fell: 0, skipped: 0, fallUntil: 0, lastFall: 0, last: null, stopBell: false });
+    Object.assign(pax, { seated: 0, standing: 0, fell: 0, skipped: 0, fallUntil: 0, lastFall: 0, last: null, stopRequested: false });
+    $('stop-bell').classList.remove('active');
     dwell = null;
-    stops.forEach((st, idx) => {
-      st.state = 'pending';
-      st.inside = false;
-      st.bellChecked = false;
-      st.waiting = idx === 0 ? randInt(4, 12) : randInt(1, 11);
-      updateStopWaitLabel(st);
+    stops.forEach(st => {
+      st.state = 'pending'; st.still = 0; st.inside = false;
+      st.prepared = false; st.bellChecked = false;
+      st.waiting = st.isTurnaround ? 0 : randInt(2, 12);
       if (st.el) st.el.classList.remove('done', 'passed');
+      updateStopMarkerLabel(st);
     });
     dangerTime = 0;
-    map.jumpTo({ center: [START.lng, START.lat], zoom: S.zoom });
-    if (S.trans === 'manual') toast('중립(N) 상태예요. Shift를 누른 채 E로 1단을 넣으세요');
+    if (mapReady) map.jumpTo({ center: [START.lng, START.lat], zoom: S.zoom });
   }
-  $('reset').addEventListener('click', e => { resetAll(); e.currentTarget.blur(); });
+
+  $('reset').addEventListener('click', e => { resetSimulationState(); e.currentTarget.blur(); });
   $('pause-resume').addEventListener('click', e => { setPause(false); e.currentTarget.blur(); });
-  $('pause-reset').addEventListener('click', e => { resetAll(); setPause(false); e.currentTarget.blur(); });
+  $('pause-reset').addEventListener('click', e => { resetSimulationState(); setPause(false); e.currentTarget.blur(); });
   $('zin').addEventListener('click', e => { zoomBy(1); e.currentTarget.blur(); });
   $('zout').addEventListener('click', e => { zoomBy(-1); e.currentTarget.blur(); });
 
-  // ───────── 설정 UI ─────────
   const panel = $('panel');
   $('open-settings').addEventListener('click', e => { panel.hidden = !panel.hidden; e.currentTarget.blur(); });
-
-  function applySettings() {
-    applyVehicle();
-    document.body.classList.toggle('manual', S.trans === 'manual');
-    document.querySelectorAll('input[name=trans]').forEach(r => { r.checked = r.value === S.trans; });
-    document.querySelectorAll('input[name=dir]').forEach(r => { r.checked = r.value === S.dir; });
-    $('trail').checked = S.trail;
-    setText($('vehname'), VEH.name + (S.trans === 'manual' ? ' · 수동' : ' · 자동'));
-    setText($('pax-cap'), '정원 ' + VEH.capacity + '명');
+  $('trail').checked = S.trail;
+  $('trail').addEventListener('change', e => {
+    S.trail = e.target.checked; saveS(); e.target.blur();
     if (!S.trail) { trailPts = []; setTrail([]); }
-    if (S.trans === 'auto' && car.gear === 0) car.gear = 1;
-  }
-  document.querySelectorAll('input[name=dir]').forEach(r => r.addEventListener('change', async () => {
-    S.dir = r.value;
-    saveS();
-    r.blur();
-    await loadRoute();
-    resetAll();
-    toast((S.dir === 'up' ? '상행선(route/up.kml)' : '하행선(route/down.kml)') + ' 노선으로 변경했어요');
-  }));
-  document.querySelectorAll('input[name=trans]').forEach(r => r.addEventListener('change', () => {
-    S.trans = r.value; applySettings(); saveS(); r.blur();
-    toast(S.trans === 'manual' ? '수동 · 에어로시티 고상: Shift를 누른 채 E/Q로 변속' : '자동 · 에어로시티 저상: R/T로 리타더 조절');
-  }));
-  $('trail').addEventListener('change', e => { S.trail = e.target.checked; applySettings(); saveS(); e.target.blur(); });
+  });
 
-  car.gear = S.trans === 'manual' ? 0 : 1;
-  applySettings();
-  updateDoorUI();
-
-  // ───────── 물리 ─────────
+  // ───────── 물리 엔진 & 루프 ─────────
   function torque(frac) {
     if (frac < 0.12) return 0.35 + 0.35 * (frac / 0.12);
     if (frac < 0.3) return 0.7 + 0.3 * ((frac - 0.12) / 0.18);
@@ -859,7 +967,6 @@
   };
   const arrowEl = $('arrow');
   let last = performance.now();
-
   const fmtDist = d => (d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m');
 
   function updatePaxPanel(now, level) {
@@ -878,19 +985,15 @@
     setText(el.pstate, txt);
     if (el.pstate.className !== 'state ' + cls) el.pstate.className = 'state ' + cls;
 
-    let next;
-    if (dwell) {
-      next = dwell.st.name + ' 정차 중 · 하차 ' + dwell.doneOut + '/' + dwell.out + ' · 승차 ' + dwell.doneIn + '/' + dwell.want;
-    } else {
-      const nx = stops.find(s => s.state === 'pending');
-      next = nx ? '다음 정류소 ' + nx.name + ' (대기 ' + nx.waiting + '명) · ' + fmtDist(distM(car.lat, car.lng, nx.lat, nx.lng))
-                : (stops.length ? '다음 정류소 없음' : '정류소 정보 없음');
-    }
+    const nx = stops.find(s => s.state === 'pending');
+    const next = nx
+      ? `다음: ${nx.name}${nx.isTurnaround ? '(회차)' : ''} · ${fmtDist(distM(car.lat, car.lng, nx.lat, nx.lng))}`
+      : (stops.length ? '종점 도착' : '정류소 정보 없음');
     setText(el.pnext, next);
 
     let lastTxt = '';
-    if (pax.last) lastTxt = '직전 ' + pax.last.name + ' · 하차 ' + pax.last.out + ' · 승차 ' + pax.last.inn;
-    if (pax.skipped) lastTxt += (lastTxt ? ' · ' : '') + '무정차 통과 ' + pax.skipped;
+    if (pax.last) lastTxt = `직전 ${pax.last.name} · 하차 ${pax.last.out} · 승차 ${pax.last.inn}`;
+    if (pax.skipped) lastTxt += (lastTxt ? ' · ' : '') + `무정차 ${pax.skipped}`;
     setText(el.plast, lastTxt);
   }
 
@@ -901,7 +1004,7 @@
     const vPrev = car.v;
 
     const gearMax = g => (g === -1 ? VEH.reverseLimit : VEH.gearLimit[g]) / 3.6;
-    const manual = S.trans === 'manual';
+    const manual = VEH.trans === 'manual';
 
     let throttleIn = 0, brakeIn = 0;
     if (manual) {
@@ -921,13 +1024,18 @@
 
     car.thr = approach(car.thr, throttleIn, CFG.thrUp, CFG.thrDown, dt);
     car.brk = approach(car.brk, brakeIn, CFG.brkUp, CFG.brkDown, dt);
-    car.emg = approach(car.emg, keys.hand ? 1 : 0, CFG.emgUp, CFG.emgDown, dt);
+    // 주차브레이크(P)가 체결되어 있으면 비상브레이크와 동일하게 최대 제동 유지
+    const holdBrake = (keys.hand || car.parkBrake) ? 1 : 0;
+    car.emg = approach(car.emg, holdBrake, CFG.emgUp, CFG.emgDown, dt);
 
     const g = car.gear;
     const engaged = g !== 0 && !(manual && keys.clutch);
-    let gm = 1;
-    if (g !== 0) gm = gearMax(g);
-    if (engaged) {
+    let gm = g !== 0 ? gearMax(g) : 1;
+
+    // 주차브레이크 해제 상태 & 문이 닫혀 있을 때만 구동력 전달 (안전장치)
+    const canDrive = !car.parkBrake && !car.frontDoor && !car.rearDoor;
+
+    if (engaged && canDrive) {
       const dir = g === -1 ? -1 : 1;
       const along = car.v * dir;
       const frac = Math.max(0, along) / gm;
@@ -945,6 +1053,9 @@
         const over = Math.min(4, 1.5 + 6 * (along / gm - 1));
         car.v -= dir * Math.min(along - gm, over * dt);
       }
+    } else if (!canDrive && throttleIn > 0 && Math.abs(car.v) < 0.1 && frame % 90 === 0) {
+      if (car.parkBrake) toast('주차브레이크(P)가 체결되어 있습니다!');
+      else if (car.frontDoor || car.rearDoor) toast('출입문(F/G)이 열려 있어 출발할 수 없습니다!');
     }
 
     const av0 = Math.abs(car.v);
@@ -962,10 +1073,10 @@
     const svc = Math.min(car.pSvc * CFG.brake, CFG.softStop[0] + CFG.softStop[1] * av1);
     const emg = car.pEmg * CFG.emergency;
     car.v -= Math.sign(car.v) * Math.min(av1, Math.max(svc, emg) * dt);
-    if (Math.abs(car.v) < 0.02 && car.thr < 0.05) car.v = 0;
+    if (Math.abs(car.v) < 0.02 && (car.thr < 0.05 || !canDrive)) car.v = 0;
 
     let rpmTarget;
-    if (engaged) rpmTarget = IDLE + (REDLINE - IDLE) * Math.min(1, Math.abs(car.v) / gm);
+    if (engaged && canDrive) rpmTarget = IDLE + (REDLINE - IDLE) * Math.min(1, Math.abs(car.v) / gm);
     else rpmTarget = IDLE + (REDLINE - IDLE) * car.thr * 0.85;
     car.rpm += (rpmTarget - car.rpm) * Math.min(1, dt * (engaged ? 10 : 6));
 
@@ -977,8 +1088,7 @@
     car.steer += clamp(steerTarget - car.steer, -sRate * dt, sRate * dt);
     car.steer = clamp(car.steer, -maxNow, maxNow);
     const yawRate = car.v / VEH.wheelbase * Math.tan(car.steer * Math.PI / 180);
-    car.heading += yawRate * 180 / Math.PI * dt;
-    car.heading = (car.heading % 360 + 360) % 360;
+    car.heading = (car.heading + yawRate * 180 / Math.PI * dt + 360) % 360;
 
     const rad = car.heading * Math.PI / 180;
     const dist = car.v * dt;
@@ -1002,13 +1112,11 @@
         const k = Math.min(pax.standing, randInt(1, Math.max(1, Math.ceil(pax.standing * 0.35))));
         pax.fell += k; pax.lastFall = k; pax.fallUntil = now / 1000 + 5;
         toast('서 있던 승객 ' + k + '명이 넘어졌어요! 더 부드럽게 운전하세요');
-      } else if (pax.seated > 0) {
-        toast('급한 움직임! 앉아 있던 승객들이 놀랐어요');
       }
     }
 
     const ll = [car.lng, car.lat];
-    map.jumpTo({ center: ll, zoom: S.zoom });
+    if (mapReady) map.jumpTo({ center: ll, zoom: S.zoom });
     arrowEl.style.transform = `rotate(${car.heading}deg)`;
 
     el.spd.textContent = Math.round(av * 3.6);
@@ -1032,8 +1140,9 @@
     requestAnimationFrame(step);
   }
 
-  window.__bus = { car, pax, doors, keys, S, get stops() { return stops; }, get route() { return route; }, get dwell() { return dwell; } };
-  loadRoute();
+  window.__bus = { car, pax, keys, S, get stops() { return stops; }, get route() { return route; } };
+  initStartMenu();
+  updateDoorAndParkUI();
   requestAnimationFrame(step);
 })();
 </script>
