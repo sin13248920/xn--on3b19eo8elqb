@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>지도 버스 운전게임</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 <style>
@@ -17,21 +17,15 @@
     --warn: #d98a00;
     --bad: #e8392b;
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0; height: 100%; overflow: hidden;
-    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-    color: var(--ink);
-    user-select: none; -webkit-user-select: none;
-    touch-action: manipulation;
-  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: var(--ink); }
   #map { position: absolute; inset: 0; background: #e9ecf1; }
 
   .hud { position: absolute; z-index: 1000; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; backdrop-filter: blur(6px); }
   .hud[hidden], #panel[hidden] { display: none; }
 
-  /* 계기판 */
-  #dash { left: 14px; bottom: 14px; width: 204px; }
+  /* 계기판 (좌측 하단) */
+  #dash { left: 14px; bottom: 14px; width: 214px; }
   #dash .veh { font-size: 12px; font-weight: 600; color: var(--mute); margin-bottom: 4px; }
   #dash .row { display: flex; align-items: baseline; gap: 6px; }
   #dash .num { font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
@@ -47,23 +41,48 @@
   #cl { visibility: hidden; font-weight: 600; }
   body.manual #cl { visibility: visible; opacity: .35; }
   body.manual #cl.on { opacity: 1; color: var(--car); }
-  .comfort { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+
+  /* 출입문 상태 표시 */
+  .doors { display: flex; gap: 6px; margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line); font-size: 12px; }
+  .door-badge { flex: 1; text-align: center; padding: 3px 6px; border-radius: 5px; background: #eef1f6; color: var(--mute); font-weight: 600; }
+  .door-badge.open { background: #dcfce7; color: var(--ok); border: 1px solid #86efac; }
+
+  .comfort { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
   .comfort.ok { color: var(--ok); }
   .comfort.warn { color: var(--warn); }
   .comfort.bad { color: var(--bad); }
   .comfort small { font-weight: 400; color: var(--mute); }
 
   /* 오른쪽: 승객 현황 + 도움말 + 설정 */
-  #side { position: absolute; z-index: 1000; right: 14px; top: 14px; width: 250px; display: flex; flex-direction: column; gap: 8px; }
+  #side { position: absolute; z-index: 1000; right: 14px; top: 14px; width: 256px; display: flex; flex-direction: column; gap: 8px; }
   #side .hud { position: static; }
 
   #pax { font-size: 13px; }
   #pax .ttl { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
   #pax .ttl b { font-size: 14px; }
   #pax .ttl small { color: var(--mute); white-space: nowrap; }
-  #pax .main { display: flex; align-items: baseline; gap: 6px; }
+  #pax .main { display: flex; align-items: center; gap: 6px; }
   #pax .n { font-size: 34px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-  #pax .main small { color: var(--mute); margin-left: auto; }
+
+  /* 하차벨 STOP 표시등 */
+  #stop-bell {
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 5px;
+    background: #5c1616; /* 어두운 빨강 */
+    color: #000000;      /* 검정 STOP */
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 1px;
+    border: 1px solid #3d0d0d;
+    transition: background-color 0.2s, box-shadow 0.2s;
+  }
+  #stop-bell.on {
+    background: #ff2a2a; /* 밝은 빨강 */
+    border-color: #ff6b6b;
+    box-shadow: 0 0 10px rgba(255, 42, 42, 0.75);
+  }
+
   #pax .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 8px 0; color: var(--mute); }
   #pax .grid b { color: var(--ink); font-variant-numeric: tabular-nums; }
   #pax .state { font-weight: 600; padding-top: 7px; border-top: 1px solid var(--line); }
@@ -90,13 +109,20 @@
 
   /* 정류소 마커 */
   .stop { position: relative; width: 24px; height: 24px; pointer-events: none; }
+  .stop .wait {
+    position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
+    white-space: nowrap; background: var(--car); color: #fff;
+    border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 700;
+    box-shadow: 0 1px 4px rgba(0,0,0,.35);
+  }
+  .stop .wait:empty { display: none; }
   .stop .dot { width: 24px; height: 24px; border-radius: 50%; background: var(--route); color: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
   .stop .lab { position: absolute; left: 50%; top: 28px; transform: translateX(-50%); white-space: nowrap; background: rgba(255,255,255,.92); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; font-size: 12px; font-weight: 600; }
   .stop.done .dot { background: #8a93a5; }
   .stop.passed .dot { background: var(--warn); }
 
   /* 알림 / 정지화면 */
-  #toast { position: absolute; z-index: 1100; left: 50%; top: 16px; transform: translateX(-50%); background: rgba(29,36,51,.92); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 80vw; text-align: center; }
+  #toast { position: absolute; z-index: 1100; left: 50%; top: 16px; transform: translateX(-50%); background: rgba(29,36,51,.92); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 60vw; text-align: center; }
   #toast.show { opacity: 1; }
   #notice { position: absolute; z-index: 1200; left: 50%; top: 50%; transform: translate(-50%,-50%); width: min(420px, 88vw); background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; line-height: 1.6; font-size: 14px; display: none; }
   #notice strong { display: block; font-size: 16px; margin-bottom: 6px; }
@@ -111,62 +137,6 @@
 
   #car { position: absolute; z-index: 500; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; pointer-events: none; }
   #car svg { display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
-
-  /* 모바일 / 터치 컨트롤러 */
-  #touch-controls {
-    display: none;
-    position: absolute; inset: 0; z-index: 1050;
-    pointer-events: none;
-  }
-  .tc-group {
-    position: absolute; bottom: 14px;
-    display: flex; flex-direction: column; gap: 8px;
-    pointer-events: auto;
-  }
-  .tc-left { left: 14px; }
-  .tc-right { right: 14px; align-items: flex-end; }
-  .tc-row { display: flex; gap: 8px; }
-  .tc-btn {
-    min-width: 56px; height: 56px; padding: 0 12px;
-    border: 1px solid var(--line); border-radius: 12px;
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(4px);
-    color: var(--ink); font-size: 15px; font-weight: 700;
-    display: grid; place-items: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,.15);
-    touch-action: none;
-  }
-  .tc-btn.active { background: var(--ink); color: #fff; transform: scale(0.96); }
-  .tc-btn.gas { height: 74px; min-width: 64px; background: rgba(31, 157, 85, 0.9); color: #fff; border-color: transparent; }
-  .tc-btn.gas.active { background: #167a41; }
-  .tc-btn.brk { height: 74px; min-width: 64px; background: rgba(232, 57, 43, 0.9); color: #fff; border-color: transparent; }
-  .tc-btn.brk.active { background: #b82519; }
-  .tc-btn.sm { height: 40px; min-width: 48px; font-size: 12px; }
-  .tc-m-only { display: none; }
-  body.manual .tc-m-only { display: flex; }
-  body.manual .tc-a-only { display: none; }
-
-  @media (pointer: coarse), (max-width: 768px) {
-    #touch-controls { display: block; }
-    #help .keys { display: none; }
-    #dash {
-      top: 10px; left: 10px; bottom: auto;
-      width: 168px; padding: 8px 10px;
-    }
-    #dash .num { font-size: 32px; }
-    #dash .gear { font-size: 20px; }
-    .comfort { font-size: 11px; margin-top: 6px; padding-top: 5px; }
-    #side {
-      top: 10px; right: 10px;
-      width: 185px; gap: 6px;
-    }
-    #pax { padding: 8px 10px; font-size: 12px; }
-    #pax .n { font-size: 24px; }
-    #pax .ttl b { font-size: 12px; }
-    #help { padding: 6px 8px; }
-    #help .btns { margin-top: 0; gap: 4px; }
-    #help button { padding: 4px 7px; font-size: 12px; }
-  }
 </style>
 </head>
 <body>
@@ -183,13 +153,20 @@
   <div class="rpm"><i id="rpmbar"></i></div>
   <div class="sub"><span id="rpmtxt">650 rpm</span><span id="cl">클러치</span></div>
   <div class="sub" id="retrow"><span>리타더</span><b id="ret">OFF</b></div>
+  <div class="doors">
+    <span class="door-badge" id="door-f">앞문(F) 닫힘</span>
+    <span class="door-badge" id="door-g">뒷문(G) 닫힘</span>
+  </div>
   <div class="comfort ok" id="comfort"><span id="cmsg">승객 쾌적</span><small id="cg">0.0 m/s²</small></div>
 </div>
 
 <div id="side">
   <div id="pax" class="hud">
     <div class="ttl"><b id="route-name">노선 불러오는 중…</b><small id="pax-cap">정원 60명</small></div>
-    <div class="main"><span class="n" id="pax-n">0</span><span>명 탑승</span></div>
+    <div class="main">
+      <span class="n" id="pax-n">0</span><span>명 탑승</span>
+      <div id="stop-bell" title="하차벨 상태">STOP</div>
+    </div>
     <div class="grid">
       <span>착석 <b id="pax-seat">0</b></span>
       <span>입석 <b id="pax-stand">0</b></span>
@@ -204,6 +181,7 @@
     <div class="keys">
       <b>W/↑</b> 가속 &nbsp; <b>S/↓</b> 브레이크·후진<br>
       <b>A/D, ←/→</b> 조향 &nbsp; <b>Space</b> 비상브레이크<br>
+      <b>F</b> 앞문(승차) &nbsp; <b>G</b> 뒷문(하차)<br>
       <div class="a-only"><b>R</b> 리타더 줄이기 &nbsp; <b>T</b> 높이기<br></div>
       <div class="m-only"><b>Shift</b> 클러치 &nbsp; <b>E/Q</b> 기어 업/다운<br></div>
       <b>Z/X</b> 지도 확대/축소 &nbsp; <b>/</b> 정지화면
@@ -211,13 +189,17 @@
     <div class="btns">
       <button id="open-settings" type="button">설정</button>
       <button id="reset" type="button">처음으로</button>
-      <button id="btn-pause" type="button">정지</button>
       <button id="zin" type="button" aria-label="지도 확대">＋</button>
       <button id="zout" type="button" aria-label="지도 축소">－</button>
     </div>
   </div>
 
   <div id="panel" class="hud" hidden>
+    <fieldset>
+      <legend>노선 방향 (route 폴더)</legend>
+      <label><input type="radio" name="dir" value="up"> 상행선 (route/up.kml)</label>
+      <label><input type="radio" name="dir" value="down"> 하행선 (route/down.kml)</label>
+    </fieldset>
     <fieldset>
       <legend>변속 · 차량</legend>
       <label><input type="radio" name="trans" value="auto"> 자동 · 에어로시티 저상</label>
@@ -227,38 +209,10 @@
   </div>
 </div>
 
-<!-- 터치 컨트롤 패드 -->
-<div id="touch-controls">
-  <div class="tc-group tc-left">
-    <div class="tc-row tc-a-only">
-      <button type="button" class="tc-btn sm" id="tc-ret-down">리타더-</button>
-      <button type="button" class="tc-btn sm" id="tc-ret-up">리타더+</button>
-    </div>
-    <div class="tc-row tc-m-only">
-      <button type="button" class="tc-btn sm" data-hold="clutch">클러치</button>
-      <button type="button" class="tc-btn sm" id="tc-gear-down">기어-</button>
-      <button type="button" class="tc-btn sm" id="tc-gear-up">기어+</button>
-    </div>
-    <div class="tc-row">
-      <button type="button" class="tc-btn" data-hold="left" aria-label="좌회전">◀</button>
-      <button type="button" class="tc-btn" data-hold="right" aria-label="우회전">▶</button>
-    </div>
-  </div>
-  <div class="tc-group tc-right">
-    <div class="tc-row">
-      <button type="button" class="tc-btn sm" data-hold="hand">비상</button>
-    </div>
-    <div class="tc-row">
-      <button type="button" class="tc-btn brk" data-hold="down">브레이크</button>
-      <button type="button" class="tc-btn gas" data-hold="up">가속</button>
-    </div>
-  </div>
-</div>
-
 <div id="pause" hidden>
   <div class="card">
     <strong>정지화면</strong>
-    <p>게임이 멈춰 있어요. 계속하기 또는 <b>/</b> 키를 누르면 재개해요.</p>
+    <p>게임이 멈춰 있어요. <b>/</b> 키를 다시 누르면 계속해요.</p>
     <div class="btns">
       <button id="pause-resume" class="primary" type="button">계속하기</button>
       <button id="pause-reset" type="button">처음으로 돌아가기</button>
@@ -302,15 +256,20 @@
   }
 
   // ───────── 설정 (브라우저에 저장) ─────────
-  const KEY = 'map-drive-settings-v3';
+  const KEY = 'map-drive-settings-v4';
   const loadS = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const saveS = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-  const S = Object.assign({ trans: 'auto', trail: true, zoom: 17 }, loadS());
+  const S = Object.assign({ trans: 'auto', trail: true, zoom: 17, dir: 'up' }, loadS());
   if (S.trans !== 'manual') S.trans = 'auto';
+  if (S.dir !== 'down') S.dir = 'up';
   S.zoom = clamp(Math.round((Number(S.zoom) || 17) * 2) / 2, 15.5, 19);
 
   // ───────── 노선 / 시작 위치 ─────────
-  const ROUTE_FILE = '2416.kml';
+  // GitHub Pages 동일 저장소의 route 폴더 내 KML 파일 경로
+  const ROUTE_FILES = {
+    up: 'route/up.kml',
+    down: 'route/down.kml'
+  };
   const START_ON_ROUTE = true;
   const START = { lat: 37.6136, lng: 127.1019, heading: 0 };
 
@@ -414,15 +373,16 @@
     lat: START.lat, lng: START.lng, heading: START.heading, v: 0, gear: 1, rpm: IDLE,
     thr: 0, brk: 0, emg: 0, pSvc: 0, pEmg: 0, steer: 0, aLong: 0, ret: 0
   };
+  const doors = { front: false, rear: false };
   const keys = { up: false, down: false, left: false, right: false, hand: false, clutch: false };
-  const pax = { seated: 0, standing: 0, fell: 0, skipped: 0, fallUntil: 0, lastFall: 0, last: null };
+  const pax = { seated: 0, standing: 0, fell: 0, skipped: 0, fallUntil: 0, lastFall: 0, last: null, stopBell: false };
   let route = null;
   let stops = [];
   let dwell = null;
   let trailPts = [];
   let frame = 0, uiTick = 0;
   let dangerTime = 0, lastFall = -99;
-  let moved = false, paused = false;
+  let paused = false;
 
   // ───────── 알림 ─────────
   let toastTimer;
@@ -432,6 +392,38 @@
     t.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  // ───────── 출입문 (F: 앞문 / G: 뒷문) ─────────
+  function updateDoorUI() {
+    const df = $('door-f'), dg = $('door-g');
+    setText(df, doors.front ? '앞문(F) 열림' : '앞문(F) 닫힘');
+    df.classList.toggle('open', doors.front);
+    setText(dg, doors.rear ? '뒷문(G) 열림' : '뒷문(G) 닫힘');
+    dg.classList.toggle('open', doors.rear);
+  }
+
+  function toggleDoor(which) {
+    if (Math.abs(car.v) > 0.4) {
+      toast('차량이 완전히 정차한 뒤에 문을 열 수 있어요');
+      return;
+    }
+    doors[which] = !doors[which];
+    updateDoorUI();
+    const label = which === 'front' ? '앞문(승차)' : '뒷문(하차)';
+    toast(label + (doors[which] ? ' 개방' : ' 폐쇄'));
+
+    // 정류소 반경 내에서 문을 열면 즉시 승하차 프로세스 시작
+    if (doors[which] && !dwell) {
+      const near = stops.find(st => st.state === 'pending' && distM(car.lat, car.lng, st.lat, st.lng) <= CFG.stopRadius);
+      if (near) startDwell(near);
+    }
+  }
+
+  // ───────── 하차벨 (STOP 표시등) ─────────
+  function setStopBell(on) {
+    pax.stopBell = on;
+    $('stop-bell').classList.toggle('on', on);
   }
 
   // ───────── KML 노선 / 정류소 ─────────
@@ -480,11 +472,19 @@
   function setupRoute(parsed) {
     if (!parsed.lines.length) return false;
     const line = parsed.lines.reduce((a, b) => (b.pts.length > a.pts.length ? b : a));
-    route = { name: line.name || '노선', pts: line.pts };
-    stops = parsed.points.map(p => Object.assign(
+    route = { name: line.name || (S.dir === 'up' ? '상행선' : '하행선'), pts: line.pts };
+    stops = parsed.points.map((p, idx) => Object.assign(
       { name: p.name, lng: p.lng, lat: p.lat },
       projectOnRoute(p.lng, p.lat),
-      { state: 'pending', still: 0, inside: false, el: null, marker: null }
+      {
+        state: 'pending',
+        inside: false,
+        bellChecked: false,
+        waiting: idx === 0 ? randInt(4, 12) : randInt(1, 11), // 각 정류소 대기 승객 수
+        el: null,
+        waitEl: null,
+        marker: null
+      }
     ));
     stops.sort((a, b) => a.s - b.s);
     stops.forEach((st, i) => { if (!st.name || /^제목 없는/.test(st.name)) st.name = '정류소 ' + (i + 1); });
@@ -509,6 +509,14 @@
     map.jumpTo({ center: [START.lng, START.lat], zoom: S.zoom });
   }
 
+  function clearRouteGraphics() {
+    stops.forEach(st => { if (st.marker) st.marker.remove(); });
+    if (!mapReady) return;
+    if (map.getLayer('route')) map.removeLayer('route');
+    if (map.getLayer('route-casing')) map.removeLayer('route-casing');
+    if (map.getSource('route')) map.removeSource('route');
+  }
+
   function drawRoute() {
     if (!mapReady || !route || map.getSource('route')) return;
     map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: route.pts } } });
@@ -519,28 +527,53 @@
       if (st.marker) return;
       const el = document.createElement('div');
       el.className = 'stop';
-      el.innerHTML = '<div class="dot"></div><div class="lab"></div>';
-      el.firstChild.textContent = String(i + 1);
-      el.lastChild.textContent = st.name;
+      el.innerHTML = '<div class="wait"></div><div class="dot"></div><div class="lab"></div>';
+      st.waitEl = el.children[0];
+      el.children[1].textContent = String(i + 1);
+      el.children[2].textContent = st.name;
       st.el = el;
+      updateStopWaitLabel(st);
       st.marker = new maplibregl.Marker({ element: el }).setLngLat([st.lng, st.lat]).addTo(map);
     });
   }
 
+  function updateStopWaitLabel(st) {
+    if (!st.waitEl) return;
+    if (st.state === 'pending' && st.waiting > 0) {
+      setText(st.waitEl, '대기 ' + st.waiting + '명');
+    } else {
+      setText(st.waitEl, '');
+    }
+  }
+
   async function loadRoute() {
+    clearRouteGraphics();
+    const targetFile = ROUTE_FILES[S.dir];
     let text = null;
     try {
-      const r = await fetch(ROUTE_FILE, { cache: 'no-cache' });
+      const r = await fetch(targetFile, { cache: 'no-cache' });
       if (r.ok) text = await r.text();
     } catch (e) {}
-    if (!text || !/<Placemark/.test(text)) text = $('kml-fallback').textContent;
-    if (!setupRoute(parseKML(text))) { setText($('route-name'), '노선 정보를 읽지 못했어요'); return; }
-    setText($('route-name'), route.name);
-    if (START_ON_ROUTE && !moved) { startFromRoute(); placeAtStart(); }
+
+    if (!text || !/<Placemark/.test(text)) {
+      text = $('kml-fallback').textContent;
+      toast(targetFile + ' 파일을 찾지 못해 기본 노선을 불러왔어요');
+    }
+
+    if (!setupRoute(parseKML(text))) {
+      setText($('route-name'), '노선 정보를 읽지 못했어요');
+      return;
+    }
+    const dirLabel = S.dir === 'up' ? ' [상행]' : ' [하행]';
+    setText($('route-name'), route.name + dirLabel);
+    if (START_ON_ROUTE) {
+      startFromRoute();
+      placeAtStart();
+    }
     drawRoute();
   }
 
-  // ───────── 승객 / 정류소 승하차 ─────────
+  // ───────── 승객 / 정류소 승하차 (F: 앞문 승차, G: 뒷문 하차) ─────────
   const paxTotal = () => pax.seated + pax.standing;
   function addPax(k) {
     for (let i = 0; i < k; i++) {
@@ -560,56 +593,130 @@
 
   function startDwell(st) {
     const n = paxTotal();
-    const out = n ? Math.min(n, Math.max(1, Math.round(n * (0.1 + Math.random() * 0.4)))) : 0;
-    const want = n === 0 ? randInt(5, 15) : randInt(2, 14);
-    const room = Math.max(0, VEH.capacity - (n - out));
-    const inn = Math.min(want, room);
-    dwell = { st, out, inn, doneOut: 0, doneIn: 0, t: 0, dur: clamp(2.5 + (out + inn) * 0.45, 3, 12), full: want > room };
-    st.still = 0;
-    toast(st.name + ' 정차 · 승하차 중');
+    // 하차벨이 울렸으면 최소 1명 이상 하차
+    let out = n ? Math.min(n, Math.round(n * (0.1 + Math.random() * 0.35))) : 0;
+    if (pax.stopBell && n > 0 && out === 0) out = 1;
+    const want = st.waiting;
+    dwell = {
+      st, out, want,
+      doneOut: 0, doneIn: 0,
+      tOut: 0, tIn: 0,
+      outFinished: out === 0,
+      inFinished: want === 0,
+      hintShown: false
+    };
+    toast(st.name + ' 정차 · F(앞문) / G(뒷문)를 열어 승하차하세요');
   }
+
   function finishStop(d, aborted) {
     const st = d.st;
     st.state = 'done';
+    st.waiting = Math.max(0, st.waiting - d.doneIn);
+    updateStopWaitLabel(st);
     if (st.el) st.el.classList.add('done');
     pax.last = { name: st.name, out: d.doneOut, inn: d.doneIn, aborted };
     rebalanceSeats();
-    if (!aborted) toast(st.name + ' 승하차 완료 · 하차 ' + d.doneOut + '명 · 승차 ' + d.doneIn + '명' + (d.full ? ' (만차)' : ''));
+    if (!aborted) {
+      toast(st.name + ' 승하차 완료 · 하차 ' + d.doneOut + '명 · 승차 ' + d.doneIn + '명');
+    }
     dwell = null;
   }
+
   function runDwell(dt) {
     const d = dwell;
+    // 문이 열린 채 출발 감지
     if (Math.abs(car.v) > 1.0) {
-      toast('문이 열린 채 출발했어요! 승하차가 끝난 뒤 출발하세요');
+      if (doors.front || doors.rear) {
+        toast('출입문이 열린 채 출발했어요! 문을 자동으로 닫습니다');
+        doors.front = false;
+        doors.rear = false;
+        updateDoorUI();
+      }
       finishStop(d, true);
       return;
     }
-    d.t += dt;
-    const p = Math.min(1, d.t / d.dur);
-    const tOut = Math.floor(p * d.out + 1e-9), tIn = Math.floor(p * d.inn + 1e-9);
-    if (tOut > d.doneOut) { removePax(tOut - d.doneOut); d.doneOut = tOut; }
-    if (tIn > d.doneIn) { addPax(tIn - d.doneIn); d.doneIn = tIn; }
-    if (p >= 1) finishStop(d, false);
+
+    // 뒷문(G)이 열려 있을 때 하차 진행
+    if (doors.rear && !d.outFinished) {
+      d.tOut += dt;
+      const targetOut = Math.min(d.out, Math.floor(d.tOut / 0.55));
+      if (targetOut > d.doneOut) {
+        removePax(targetOut - d.doneOut);
+        d.doneOut = targetOut;
+      }
+      if (d.doneOut >= d.out) {
+        d.outFinished = true;
+        if (pax.stopBell) setStopBell(false); // 하차 완료 시 하차벨 소등
+        toast('하차 완료 · 뒷문(G)을 닫아주세요');
+      }
+    } else if (!doors.rear && d.out > 0 && !d.outFinished && !d.hintShown) {
+      toast('하차 승객이 있습니다. G키로 뒷문을 열어주세요');
+      d.hintShown = true;
+    }
+
+    // 앞문(F)이 열려 있을 때 승차 진행
+    if (doors.front && !d.inFinished) {
+      d.tIn += dt;
+      const room = Math.max(0, VEH.capacity - paxTotal());
+      if (room === 0) {
+        d.inFinished = true;
+        toast('만차입니다! 더 이상 승차할 수 없어요');
+      } else {
+        const targetIn = Math.min(d.want, Math.floor(d.tIn / 0.6));
+        if (targetIn > d.doneIn) {
+          const actualAdd = Math.min(targetIn - d.doneIn, room);
+          addPax(actualAdd);
+          d.doneIn += actualAdd;
+          d.st.waiting = Math.max(0, d.st.waiting - actualAdd);
+          updateStopWaitLabel(d.st);
+        }
+        if (d.doneIn >= d.want) {
+          d.inFinished = true;
+          toast('승차 완료 · 앞문(F)을 닫고 출발하세요');
+        }
+      }
+    } else if (!doors.front && d.want > 0 && !d.inFinished && d.outFinished && !d.hintShown) {
+      toast('대기 승객 ' + d.want + '명이 있습니다. F키로 앞문을 열어주세요');
+      d.hintShown = true;
+    }
+
+    // 승하차가 모두 끝나고 앞문·뒷문이 모두 닫히면 정류소 처리 완료
+    if (d.outFinished && d.inFinished && !doors.front && !doors.rear) {
+      finishStop(d, false);
+    }
   }
+
   function updateStops(dt) {
     if (dwell) { runDwell(dt); return; }
+
+    // 다음 정류소 접근 시 승객 하차벨 작동 판정 (반경 140m 이내 진입 시)
+    const nx = stops.find(s => s.state === 'pending');
+    if (nx && !nx.bellChecked && paxTotal() > 0) {
+      const distToNext = distM(car.lat, car.lng, nx.lat, nx.lng);
+      if (distToNext <= 140) {
+        nx.bellChecked = true;
+        if (!pax.stopBell && Math.random() < 0.72) {
+          setStopBell(true);
+          toast('딩동! 이번 정류소(' + nx.name + ') 하차벨이 눌렸습니다');
+        }
+      }
+    }
+
     for (const st of stops) {
       if (st.state !== 'pending') continue;
       const d = distM(car.lat, car.lng, st.lat, st.lng);
       if (d <= CFG.stopRadius) {
         st.inside = true;
-        if (Math.abs(car.v) < 0.3) {
-          st.still += dt;
-          if (st.still > 0.8) { startDwell(st); return; }
-        } else st.still = 0;
-      } else {
-        st.still = 0;
-        if (st.inside && d > CFG.stopRadius + 15) {
-          st.state = 'passed';
-          pax.skipped++;
-          if (st.el) st.el.classList.add('passed');
-          toast(st.name + ' 무정차 통과');
+        // 정류소 반경 안에서 정차 후 F 또는 G 문을 열면 승하차 시작
+        if (Math.abs(car.v) < 0.3 && (doors.front || doors.rear)) {
+          startDwell(st);
+          return;
         }
+      } else if (st.inside && d > CFG.stopRadius + 15) {
+        st.state = 'passed';
+        pax.skipped++;
+        if (st.el) st.el.classList.add('passed');
+        toast(st.name + ' 무정차 통과');
       }
     }
   }
@@ -618,7 +725,7 @@
   const GEAR_SEQ = [-1, 0, ...Array.from({ length: MAXG }, (_, i) => i + 1)];
   function shiftGear(d) {
     if (S.trans !== 'manual') return;
-    if (!keys.clutch) { toast('클러치를 누른 채 변속하세요'); return; }
+    if (!keys.clutch) { toast('클러치(Shift)를 누른 채 변속하세요'); return; }
     let i = GEAR_SEQ.indexOf(car.gear) + d;
     i = clamp(i, 0, GEAR_SEQ.length - 1);
     if (GEAR_SEQ[i] === -1 && Math.abs(car.v) > 2) { toast('정지한 뒤에 후진 기어를 넣으세요'); return; }
@@ -642,11 +749,10 @@
     paused = p;
     $('pause').hidden = !p;
     Object.keys(keys).forEach(k => keys[k] = false);
-    document.querySelectorAll('.tc-btn.active').forEach(b => b.classList.remove('active'));
     last = performance.now();
   }
 
-  // ───────── 입력 (PC 키보드 + 터치) ─────────
+  // ───────── 입력 (PC 키보드) ─────────
   const keyMap = {
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
@@ -658,6 +764,8 @@
     if (inForm(e.target)) return;
     if (e.code === 'Slash' || e.key === '/') { if (!e.repeat) setPause(!paused); e.preventDefault(); return; }
     if (paused) return;
+    if (e.code === 'KeyF') { if (!e.repeat) toggleDoor('front'); return; }
+    if (e.code === 'KeyG') { if (!e.repeat) toggleDoor('rear'); return; }
     if (e.code === 'KeyR' || e.code === 'KeyT') { if (!e.repeat) retarderBy(e.code === 'KeyT' ? 1 : -1); return; }
     if (e.code === 'KeyE' || e.code === 'KeyQ') { if (!e.repeat) shiftGear(e.code === 'KeyE' ? 1 : -1); return; }
     if (e.code === 'KeyZ' || e.code === 'KeyX') { if (!e.repeat) zoomBy(e.code === 'KeyZ' ? 1 : -1); return; }
@@ -669,35 +777,7 @@
     const k = keyMap[e.code];
     if (k) { keys[k] = false; e.preventDefault(); }
   });
-  addEventListener('blur', () => {
-    Object.keys(keys).forEach(k => keys[k] = false);
-    document.querySelectorAll('.tc-btn.active').forEach(b => b.classList.remove('active'));
-  });
-
-  // 터치/포인터 홀드 버튼 바인딩
-  document.querySelectorAll('[data-hold]').forEach(btn => {
-    const k = btn.dataset.hold;
-    const setDown = e => {
-      e.preventDefault();
-      if (paused) return;
-      keys[k] = true;
-      btn.classList.add('active');
-    };
-    const setUp = e => {
-      e.preventDefault();
-      keys[k] = false;
-      btn.classList.remove('active');
-    };
-    btn.addEventListener('pointerdown', setDown);
-    btn.addEventListener('pointerup', setUp);
-    btn.addEventListener('pointerleave', setUp);
-    btn.addEventListener('pointercancel', setUp);
-  });
-
-  $('tc-ret-up').addEventListener('click', () => { if (!paused) retarderBy(1); });
-  $('tc-ret-down').addEventListener('click', () => { if (!paused) retarderBy(-1); });
-  $('tc-gear-up').addEventListener('click', () => { if (!paused) shiftGear(1); });
-  $('tc-gear-down').addEventListener('click', () => { if (!paused) shiftGear(-1); });
+  addEventListener('blur', () => Object.keys(keys).forEach(k => keys[k] = false));
 
   function resetAll() {
     Object.assign(car, {
@@ -705,16 +785,26 @@
       thr: 0, brk: 0, emg: 0, pSvc: 0, pEmg: 0, steer: 0, aLong: 0, ret: 0
     });
     car.gear = S.trans === 'manual' ? 0 : 1;
+    doors.front = false;
+    doors.rear = false;
+    updateDoorUI();
+    setStopBell(false);
     trailPts = []; setTrail([]);
-    Object.assign(pax, { seated: 0, standing: 0, fell: 0, skipped: 0, fallUntil: 0, lastFall: 0, last: null });
+    Object.assign(pax, { seated: 0, standing: 0, fell: 0, skipped: 0, fallUntil: 0, lastFall: 0, last: null, stopBell: false });
     dwell = null;
-    stops.forEach(st => { st.state = 'pending'; st.still = 0; st.inside = false; if (st.el) st.el.classList.remove('done', 'passed'); });
+    stops.forEach((st, idx) => {
+      st.state = 'pending';
+      st.inside = false;
+      st.bellChecked = false;
+      st.waiting = idx === 0 ? randInt(4, 12) : randInt(1, 11);
+      updateStopWaitLabel(st);
+      if (st.el) st.el.classList.remove('done', 'passed');
+    });
     dangerTime = 0;
     map.jumpTo({ center: [START.lng, START.lat], zoom: S.zoom });
-    if (S.trans === 'manual') toast('중립(N) 상태예요. 클러치를 누른 채 기어+로 1단을 넣으세요');
+    if (S.trans === 'manual') toast('중립(N) 상태예요. Shift를 누른 채 E로 1단을 넣으세요');
   }
   $('reset').addEventListener('click', e => { resetAll(); e.currentTarget.blur(); });
-  $('btn-pause').addEventListener('click', e => { setPause(!paused); e.currentTarget.blur(); });
   $('pause-resume').addEventListener('click', e => { setPause(false); e.currentTarget.blur(); });
   $('pause-reset').addEventListener('click', e => { resetAll(); setPause(false); e.currentTarget.blur(); });
   $('zin').addEventListener('click', e => { zoomBy(1); e.currentTarget.blur(); });
@@ -728,20 +818,30 @@
     applyVehicle();
     document.body.classList.toggle('manual', S.trans === 'manual');
     document.querySelectorAll('input[name=trans]').forEach(r => { r.checked = r.value === S.trans; });
+    document.querySelectorAll('input[name=dir]').forEach(r => { r.checked = r.value === S.dir; });
     $('trail').checked = S.trail;
     setText($('vehname'), VEH.name + (S.trans === 'manual' ? ' · 수동' : ' · 자동'));
     setText($('pax-cap'), '정원 ' + VEH.capacity + '명');
     if (!S.trail) { trailPts = []; setTrail([]); }
     if (S.trans === 'auto' && car.gear === 0) car.gear = 1;
   }
+  document.querySelectorAll('input[name=dir]').forEach(r => r.addEventListener('change', async () => {
+    S.dir = r.value;
+    saveS();
+    r.blur();
+    await loadRoute();
+    resetAll();
+    toast((S.dir === 'up' ? '상행선(route/up.kml)' : '하행선(route/down.kml)') + ' 노선으로 변경했어요');
+  }));
   document.querySelectorAll('input[name=trans]').forEach(r => r.addEventListener('change', () => {
     S.trans = r.value; applySettings(); saveS(); r.blur();
-    toast(S.trans === 'manual' ? '수동 · 에어로시티 고상: 클러치를 누른 채 변속' : '자동 · 에어로시티 저상: 리타더 조절 가능');
+    toast(S.trans === 'manual' ? '수동 · 에어로시티 고상: Shift를 누른 채 E/Q로 변속' : '자동 · 에어로시티 저상: R/T로 리타더 조절');
   }));
   $('trail').addEventListener('change', e => { S.trail = e.target.checked; applySettings(); saveS(); e.target.blur(); });
 
   car.gear = S.trans === 'manual' ? 0 : 1;
   applySettings();
+  updateDoorUI();
 
   // ───────── 물리 ─────────
   function torque(frac) {
@@ -779,10 +879,11 @@
     if (el.pstate.className !== 'state ' + cls) el.pstate.className = 'state ' + cls;
 
     let next;
-    if (dwell) next = dwell.st.name + ' 승하차 중 · 하차 ' + dwell.doneOut + '/' + dwell.out + ' · 승차 ' + dwell.doneIn + '/' + dwell.inn;
-    else {
+    if (dwell) {
+      next = dwell.st.name + ' 정차 중 · 하차 ' + dwell.doneOut + '/' + dwell.out + ' · 승차 ' + dwell.doneIn + '/' + dwell.want;
+    } else {
       const nx = stops.find(s => s.state === 'pending');
-      next = nx ? '다음 정류소 ' + nx.name + ' · ' + fmtDist(distM(car.lat, car.lng, nx.lat, nx.lng))
+      next = nx ? '다음 정류소 ' + nx.name + ' (대기 ' + nx.waiting + '명) · ' + fmtDist(distM(car.lat, car.lng, nx.lat, nx.lng))
                 : (stops.length ? '다음 정류소 없음' : '정류소 정보 없음');
     }
     setText(el.pnext, next);
@@ -869,7 +970,6 @@
     car.rpm += (rpmTarget - car.rpm) * Math.min(1, dt * (engaged ? 10 : 6));
 
     const av = Math.abs(car.v);
-    if (!moved && av > 0.05) moved = true;
     const steerIn = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
     const maxNow = Math.min(VEH.maxSteer, Math.atan(VEH.wheelbase * VEH.latLimit / Math.max(av * av, 0.0001)) * 180 / Math.PI);
     const steerTarget = steerIn * maxNow;
@@ -932,7 +1032,7 @@
     requestAnimationFrame(step);
   }
 
-  window.__bus = { car, pax, keys, S, get stops() { return stops; }, get route() { return route; }, get dwell() { return dwell; } };
+  window.__bus = { car, pax, doors, keys, S, get stops() { return stops; }, get route() { return route; }, get dwell() { return dwell; } };
   loadRoute();
   requestAnimationFrame(step);
 })();
