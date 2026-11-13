@@ -430,7 +430,7 @@
   const pax = {
     seated: 0, standing: 0, fell: 0, skipped: 0,
     fallUntil: 0, lastFall: 0, last: null,
-    stopRequested: false // 하차벨 상태
+    stopRequested: false
   };
   let route = null;
   let currentRouteFile = S.routeFile;
@@ -473,7 +473,6 @@
     if (which === 'front') car.frontDoor = !car.frontDoor;
     else car.rearDoor = !car.rearDoor;
     updateDoorAndParkUI();
-    // 문을 열면 하차벨 소등
     if (car.frontDoor || car.rearDoor) {
       pax.stopRequested = false;
       $('stop-bell').classList.remove('active');
@@ -520,14 +519,14 @@
 
   function projectOnRoute(lng, lat) {
     const P = toXY(lng, lat);
-    let best = { d: Infinity, s: 0 }, acc = 0;
+    let best = { d: Infinity, s: 0, segIdx: 0 }, acc = 0;
     for (let i = 0; i < route.pts.length - 1; i++) {
       const A = toXY(route.pts[i][0], route.pts[i][1]);
       const B = toXY(route.pts[i + 1][0], route.pts[i + 1][1]);
       const dx = B[0] - A[0], dy = B[1] - A[1], L2 = dx * dx + dy * dy, L = Math.sqrt(L2);
       const t = L2 ? clamp(((P[0] - A[0]) * dx + (P[1] - A[1]) * dy) / L2, 0, 1) : 0;
       const d = Math.hypot(P[0] - (A[0] + t * dx), P[1] - (A[1] + t * dy));
-      if (d < best.d) best = { d, s: acc + t * L };
+      if (d < best.d) best = { d, s: acc + t * L, segIdx: i };
       acc += L;
     }
     return best;
@@ -546,7 +545,7 @@
           lng: p.lng,
           lat: p.lat,
           isTurnaround,
-          waiting: isTurnaround ? 0 : randInt(2, 12), // 정류소별 대기 승객 수
+          waiting: isTurnaround ? 0 : randInt(2, 12),
           wantOut: 0,
           doneOut: 0,
           doneIn: 0
@@ -601,17 +600,41 @@
     });
   }
 
+  // KML 첫 정류소를 스폰 위치로 설정하고, 해당 구간의 노선 진행 방향을 바라보도록 각도 계산
   function startFromRoute() {
-    const p0 = route.pts[0];
-    START.lng = p0[0]; START.lat = p0[1];
-    const a = toXY(p0[0], p0[1]);
-    for (let i = 1; i < route.pts.length; i++) {
-      const b = toXY(route.pts[i][0], route.pts[i][1]);
-      if (Math.hypot(b[0] - a[0], b[1] - a[1]) >= 30) {
+    if (stops && stops.length > 0) {
+      const firstStop = stops[0];
+      START.lng = firstStop.lng;
+      START.lat = firstStop.lat;
+
+      const idx = clamp(firstStop.segIdx || 0, 0, route.pts.length - 2);
+      const a = toXY(route.pts[idx][0], route.pts[idx][1]);
+      let foundHeading = false;
+      for (let i = idx + 1; i < route.pts.length; i++) {
+        const b = toXY(route.pts[i][0], route.pts[i][1]);
+        if (Math.hypot(b[0] - a[0], b[1] - a[1]) >= 15) {
+          START.heading = (Math.atan2(b[0] - a[0], b[1] - a[1]) * 180 / Math.PI + 360) % 360;
+          foundHeading = true;
+          break;
+        }
+      }
+      if (!foundHeading && route.pts.length > idx + 1) {
+        const b = toXY(route.pts[idx + 1][0], route.pts[idx + 1][1]);
         START.heading = (Math.atan2(b[0] - a[0], b[1] - a[1]) * 180 / Math.PI + 360) % 360;
-        break;
+      }
+    } else if (route && route.pts.length > 0) {
+      const p0 = route.pts[0];
+      START.lng = p0[0]; START.lat = p0[1];
+      const a = toXY(p0[0], p0[1]);
+      for (let i = 1; i < route.pts.length; i++) {
+        const b = toXY(route.pts[i][0], route.pts[i][1]);
+        if (Math.hypot(b[0] - a[0], b[1] - a[1]) >= 30) {
+          START.heading = (Math.atan2(b[0] - a[0], b[1] - a[1]) * 180 / Math.PI + 360) % 360;
+          break;
+        }
       }
     }
+
     car.lat = START.lat; car.lng = START.lng; car.heading = START.heading;
     if (mapReady) map.jumpTo({ center: [START.lng, START.lat], zoom: S.zoom });
   }
@@ -646,7 +669,6 @@
       return;
     }
     toast(`회차점 도착! 노선이 [${nextRoute.name}](으)로 자동 변경됩니다.`);
-    // 기존 탑승객 전원 하차 처리
     pax.seated = 0; pax.standing = 0;
     pax.stopRequested = false;
     $('stop-bell').classList.remove('active');
@@ -695,7 +717,7 @@
     started = true;
     paused = false;
     last = performance.now();
-    toast('운행을 시작합니다. P키로 주차브레이크를 해제하세요.');
+    toast('첫 정류소에서 운행을 시작합니다. P키로 주차브레이크를 해제하세요.');
   });
 
   $('open-menu').addEventListener('click', e => {
@@ -727,13 +749,11 @@
     }
   }
 
-  // 정류소 접근 시 하차 승객이 있으면 하차벨 점등
   function checkStopBellTrigger() {
     if (paxTotal() === 0 || pax.stopRequested) return;
     const nextStop = stops.find(s => s.state === 'pending');
     if (!nextStop) return;
     const d = distM(car.lat, car.lng, nextStop.lat, nextStop.lng);
-    // 다음 정류소 45m~130m 전방에서 하차 희망 승객이 있으면 벨을 누름
     if (d > 45 && d < 130 && !nextStop.bellChecked) {
       nextStop.bellChecked = true;
       if (nextStop.isTurnaround || Math.random() < 0.75) {
@@ -749,7 +769,7 @@
     st.prepared = true;
     const n = paxTotal();
     if (st.isTurnaround) {
-      st.wantOut = n; // 회차점에서는 전원 하차
+      st.wantOut = n;
     } else if (pax.stopRequested) {
       st.wantOut = n ? Math.min(n, Math.max(1, Math.round(n * (0.15 + Math.random() * 0.4)))) : 0;
     } else {
@@ -763,7 +783,6 @@
   function updateStops(dt) {
     checkStopBellTrigger();
 
-    // 현재 정차 반경 내 정류소 찾기
     let activeStop = null;
     for (const st of stops) {
       if (st.state !== 'pending') continue;
@@ -795,7 +814,6 @@
       return;
     }
 
-    // 정류소 반경 안
     if (Math.abs(car.v) > 0.3) {
       box.className = '';
       setText(box, `${activeStop.name} 진입 · 정차 후 문을 여세요`);
@@ -811,7 +829,6 @@
       return;
     }
 
-    // 문이 열려 있을 때 승하차 진행 (0.45초마다 1명씩 이동)
     activeStop.stepTimer += dt;
     const canAlight = (car.frontDoor || car.rearDoor) && activeStop.doneOut < activeStop.wantOut;
     const canBoard = car.frontDoor && activeStop.waiting > 0 && paxTotal() < VEH.capacity;
@@ -830,7 +847,6 @@
       }
     }
 
-    // 상태 표시 업데이트 (내리고 있음 / 타고 있음)
     const statusParts = [];
     if (canAlight) statusParts.push(`내리고 있음 (${activeStop.doneOut}/${activeStop.wantOut}명)`);
     if (canBoard) statusParts.push(`타고 있음 (잔여 ${activeStop.waiting}명)`);
@@ -849,7 +865,6 @@
         rebalanceSeats();
         pax.last = { name: activeStop.name, out: activeStop.doneOut, inn: activeStop.doneIn };
 
-        // 회차점일 경우 노선 자동 전환
         if (activeStop.isTurnaround) {
           switchTurnaroundRoute();
         }
@@ -1024,7 +1039,6 @@
 
     car.thr = approach(car.thr, throttleIn, CFG.thrUp, CFG.thrDown, dt);
     car.brk = approach(car.brk, brakeIn, CFG.brkUp, CFG.brkDown, dt);
-    // 주차브레이크(P)가 체결되어 있으면 비상브레이크와 동일하게 최대 제동 유지
     const holdBrake = (keys.hand || car.parkBrake) ? 1 : 0;
     car.emg = approach(car.emg, holdBrake, CFG.emgUp, CFG.emgDown, dt);
 
@@ -1032,7 +1046,6 @@
     const engaged = g !== 0 && !(manual && keys.clutch);
     let gm = g !== 0 ? gearMax(g) : 1;
 
-    // 주차브레이크 해제 상태 & 문이 닫혀 있을 때만 구동력 전달 (안전장치)
     const canDrive = !car.parkBrake && !car.frontDoor && !car.rearDoor;
 
     if (engaged && canDrive) {
