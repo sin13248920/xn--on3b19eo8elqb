@@ -71,8 +71,8 @@
     width: 46px;
     height: 46px;
     border-radius: 6px;
-    background: #6e1414; /* 평소: 살짝 어두운 빨간 배경 */
-    color: #111111;      /* 검정 STOP */
+    background: #6e1414;
+    color: #111111;
     border: 2px solid #450a0a;
     font-weight: 900;
     font-size: 12px;
@@ -83,8 +83,8 @@
     transition: background 0.15s, box-shadow 0.15s;
   }
   #stop-bell.active {
-    background: #ff2a2a; /* 승객이 누르면: 밝은 빨강 */
-    color: #000000;      /* 검정 STOP */
+    background: #ff2a2a;
+    color: #000000;
     border-color: #990000;
     box-shadow: 0 0 12px rgba(255, 42, 42, 0.75);
   }
@@ -277,14 +277,13 @@
 <!-- 외부 차량 파일 로드 (car/vehicles.js) -->
 <script src="car/vehicles.js"></script>
 
-<!-- 내장 기본 노선 (route 폴더 로드 실패 시 fallback) -->
+<!-- 내장 기본 노선 (fallback) -->
 <script type="application/xml" id="kml-fallback"><?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>2416</name>
-<Placemark><name>2416(삼성동방향)</name><LineString><coordinates>127.1043482256634,37.613433263216 127.1042680753716,37.61318392605531 127.1030308909233,37.61348074304938 127.1022590908066,37.61368307902029 127.101703909611,37.61386398549202 127.1015890926951,37.61386736383005 127.101471584073,37.61380888067273 127.1013948874163,37.61369195511499 127.1010062440701,37.60917663116768 127.1009060183214,37.60895635205291 127.1004280525405,37.60837074556316 127.0974660258172,37.6077971436489 127.0963718670278,37.60738687891343 127.0954739952545,37.60698494775059 127.0939150275441,37.60646547518098 127.0935014476624,37.60633295040932 127.0930087911518,37.60602649895705 127.0923497472281,37.60558226332251 127.0917142339361,37.60515516406259 127.0910156064836,37.60469503526845 127.0903592589418,37.60425526649048 127.0895410480345,37.60376195594172 127.0888090112111,37.60348302574267 127.087905060973,37.60322128293948 127.0874301316618,37.60305639224332 127.0872642481798,37.60299803897909 127.0871834921187,37.60289117386636 127.0871699007384,37.60276283490469 127.0875265927183,37.60012855561953 127.087677356182,37.59932626689318 127.0880442251329,37.59724171998057 127.087959471101,37.59710439152823 127.0873902498224,37.59688125108797 127.0869094166794,37.59675387144112 127.0867561980081,37.59668009373057 127.0845590514116,37.59607946641065 127.0843178179498,37.59603499284169 127.0835091785488,37.59582944245025 127.0831794477051,37.59577256744506 127.0824660580481,37.59558726032972 127.0821627207281,37.59545720755239 127.0807045979076,37.59511824428802 127.0805354068834,37.59508102395863 127.0803916274812,37.59500077915762 127.0802458507561,37.59487333808536 127.0801791472761,37.59476824586405 127.0800929572001,37.59314756799604 127.0801478824616,37.5929361439726 127.0796061842327,37.58191800104935 127.0795560042647,37.58178684575353 127.0792272229552,37.58145980888511 127.0780654772112,37.58110993857714 127.0761073270868,37.58039810321686 127.0756926052304,37.5802059656497 127.0725386863968,37.57906557759168 127.0723608777888,37.57896616915348 127.0722657304384,37.5788257994511 127.0722177920471,37.57866312023597 127.0717811207094,37.57286232347635 127.071515155422,37.57203234948068 127.0707775057002,37.57094026295373 127.070525021508,37.57046472840889 127.064993574817,37.56222849257412 127.0649098105924,37.56198738411858 127.0647079062028,37.56167725695035 127.0646688492892,37.56152757305442 127.064711273542,37.56138622996023 127.0708009682488,37.56058476493916 127.0791233292089,37.55725471358932 127.0792473727167,37.55715591075597 127.0793050004472,37.55703281884382 127.0792782890375,37.55687983048119 127.0765525668998,37.55165720162496 127.0760455980755,37.55034710352181 127.0746809899218,37.54798944434623 127.0742699941575,37.5474494043635 127.0740460023444,37.54715154464829 127.0733878439544,37.54577839108527 127.0706476979155,37.53997282783024 127.0641754402657,37.54216906397642 127.0640399706195,37.54214847212385 127.0639076391659,37.54206693033743 127.0622693849704,37.53928038530537 127.0620500339024,37.53898431621876 127.0606914102933,37.5366320255026 127.0602719808744,37.53589180249374 127.0596915012767,37.53465465763571 127.0554294599447,37.52706525684159 127.0553202197776,37.52691359253615 127.0545883018562,37.5256490354425 127.05439196926,37.52542595885373 127.0541056303646,37.52523446564444 127.0538134133556,37.52510752787056 127.0476025546723,37.5243145034955 127.0474995544116,37.52420918190887 127.047423656217,37.52402397348461 127.0563561883441,37.50695726486741 127.056536981932,37.50680194716571 127.0569275660454,37.50681598434013 127.0629937381459,37.50859785186805 127.0648700161263,37.50522003003944 127.0647630842553,37.50515404202457 127.0589526070071,37.50321901384999</coordinates></LineString></Placemark>
-<Placemark><name>중랑차고지</name><Point><coordinates>127.1027449166605,37.6135955533537</coordinates></Point></Placemark>
-<Placemark><name>신내데시앙</name><Point><coordinates>127.1010083925326,37.6104763079155</coordinates></Point></Placemark>
-<Placemark><name>삼성역(회차)</name><description>회차점</description><Point><coordinates>127.0589526070071,37.50321901384999</coordinates></Point></Placemark>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>2211(회기역)</name>
+<Placemark><name>북부운수</name><Point><coordinates>127.0847831184505,37.57328701984486</coordinates></Point></Placemark>
+<Placemark><name>회기역종점</name><description><![CDATA[<div>회차</div>]]></description><Point><coordinates>127.0587719540993,37.58982370778425</coordinates></Point></Placemark>
 </Document></kml></script>
+
 <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 <script>
 (() => {
@@ -310,7 +309,6 @@
     return;
   }
 
-  // ───────── 차량 데이터 로드 (car/vehicles.js 우선, 없으면 기본값) ─────────
   const FALLBACK_VEHICLES = {
     low: {
       id: 'low', name: '에어로시티 (저상)', trans: 'auto',
@@ -336,18 +334,18 @@
   const VEHICLES = (window.BUS_VEHICLES && Object.keys(window.BUS_VEHICLES).length)
     ? window.BUS_VEHICLES : FALLBACK_VEHICLES;
 
-  // ───────── 설정 및 선택 상태 ─────────
-  const KEY = 'map-drive-settings-v4';
+  const KEY = 'map-drive-settings-v5';
   const loadS = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const saveS = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-  const S = Object.assign({ vehicleId: Object.keys(VEHICLES)[0], routeFile: '2416.kml', trail: true, zoom: 17 }, loadS());
+  const S = Object.assign({ vehicleId: Object.keys(VEHICLES)[0], routeFile: '2211(회기역).kml', trail: true, zoom: 17 }, loadS());
   if (!VEHICLES[S.vehicleId]) S.vehicleId = Object.keys(VEHICLES)[0];
   S.zoom = clamp(Math.round((Number(S.zoom) || 17) * 2) / 2, 15.5, 19);
 
   let AVAILABLE_ROUTES = [
+    { file: '2211(회기역).kml', name: '2211 (회기역)' },
+    { file: '2211(차고지방면).kml', name: '2211 (차고지방면)' },
     { file: '2222(강남방면).kml', name: '2222 (강남방면)' },
-    { file: '2222(차고지방면).kml', name: '2222 (차고지방면)' },
-    { file: '2416.kml', name: '2416 (내장 기본 노선)' }
+    { file: '2222(차고지방면).kml', name: '2222 (차고지방면)' }
   ];
 
   const CFG = {
@@ -379,8 +377,7 @@
   }
   applyVehicle();
 
-  // ───────── 지도 초기화 ─────────
-  const START = { lat: 37.6136, lng: 127.1019, heading: 0 };
+  const START = { lat: 37.57328, lng: 127.08478, heading: 0 };
   const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
   let map, mapReady = false;
   try {
@@ -394,7 +391,7 @@
       attributionControl: { compact: true }
     });
   } catch (e) {
-    notice('지도를 표시할 수 없어요', 'WebGL을 지원하는 브라우저에서 열어 주세요.');
+    notice('지도를 표시할 수 없어요', 'WebGL을 지원하는 브라우저에서 열어 보세요.');
     return;
   }
 
@@ -420,7 +417,6 @@
     drawRoute();
   });
 
-  // ───────── 상태 변수 ─────────
   const car = {
     lat: START.lat, lng: START.lng, heading: START.heading, v: 0, gear: 1, rpm: IDLE,
     thr: 0, brk: 0, emg: 0, pSvc: 0, pEmg: 0, steer: 0, aLong: 0, ret: 0,
@@ -442,7 +438,6 @@
   let dangerTime = 0, lastFall = -99;
   let started = false, paused = true;
 
-  // ───────── 알림 ─────────
   let toastTimer;
   function toast(msg) {
     const t = $('toast');
@@ -452,7 +447,6 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
   }
 
-  // ───────── 도어 / 주차브레이크 UI 갱신 ─────────
   function updateDoorAndParkUI() {
     const fEl = $('ind-front'), rEl = $('ind-rear'), pEl = $('ind-park');
     setText(fEl, car.frontDoor ? '앞문 열림' : '앞문 닫힘');
@@ -485,11 +479,30 @@
     toast(car.parkBrake ? '주차브레이크 체결 (P)' : '주차브레이크 해제 (P)');
   }
 
-  // ───────── KML 파싱 및 회차점 전환 ─────────
+  // KML 파서 (LineString이 없어도 점(Point)들을 이어 경로 선 자동 생성)
   function parseKML(text) {
     const decode = s => s.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').trim();
-    const out = { lines: [], points: [] };
+    
+    const docNameMatch = text.match(/<Document[^>]*>[\s\S]*?<name>([\s\S]*?)<\/name>/);
+    const docName = docNameMatch ? decode(docNameMatch[1]) : '노선';
+
+    const lines = [];
+    const points = [];
+
+    // LineString이 있는 경우 추출
+    const lineMatches = text.match(/<LineString\b[\s\S]*?<\/LineString>/g) || [];
+    for (const lm of lineMatches) {
+      const cm = lm.match(/<coordinates>([\s\S]*?)<\/coordinates>/);
+      if (!cm) continue;
+      const pts = cm[1].trim().split(/\s+/)
+        .map(t => t.split(',').map(Number))
+        .filter(a => a.length >= 2 && isFinite(a[0]) && isFinite(a[1]))
+        .map(a => [a[0], a[1]]);
+      if (pts.length > 1) lines.push({ name: docName, pts });
+    }
+
+    // Placemark (정류소 포인트) 추출
     const pms = text.match(/<Placemark\b[\s\S]*?<\/Placemark>/g) || [];
     for (const pm of pms) {
       const nm = pm.match(/<name>([\s\S]*?)<\/name>/);
@@ -498,16 +511,18 @@
       const desc = dm ? decode(dm[1]) : '';
       const cm = pm.match(/<coordinates>([\s\S]*?)<\/coordinates>/);
       if (!cm) continue;
-      const pts = cm[1].trim().split(/\s+/)
-        .map(t => t.split(',').map(Number))
-        .filter(a => a.length >= 2 && isFinite(a[0]) && isFinite(a[1]))
-        .map(a => [a[0], a[1]]);
-      if (/<LineString\b/.test(pm) && pts.length > 1) out.lines.push({ name, pts });
-      else if (/<Point\b/.test(pm) && pts.length === 1) {
-        out.points.push({ name, desc, lng: pts[0][0], lat: pts[0][1] });
+      const coords = cm[1].trim().split(',').map(Number);
+      if (coords.length >= 2 && isFinite(coords[0]) && isFinite(coords[1])) {
+        points.push({ name, desc, lng: coords[0], lat: coords[1] });
       }
     }
-    return out;
+
+    // LineString이 없고 포인트만 있는 경우, 정류소 순서대로 선을 자동 생성
+    if (lines.length === 0 && points.length > 0) {
+      lines.push({ name: docName, pts: points.map(p => [p.lng, p.lat]) });
+    }
+
+    return { lines, points };
   }
 
   const LAT0 = 37.56;
@@ -534,10 +549,11 @@
 
   function setupRoute(parsed) {
     if (!parsed.lines.length) return false;
-    const line = parsed.lines.reduce((a, b) => (b.pts.length > a.pts.length ? b : a));
+    const line = parsed.lines[0];
     route = { name: line.name || currentRouteFile.replace(/\.kml$/i, ''), pts: line.pts };
     stops = parsed.points.map(p => {
-      const isTurnaround = /회차점/.test(p.desc || '') || /회차점/.test(p.name || '');
+      // 회차점 판별: description에 '회차'가 있거나 이름에 '회차'가 포함된 경우
+      const isTurnaround = /회차/.test(p.desc || '') || /회차/.test(p.name || '');
       return Object.assign(
         {
           name: p.name,
@@ -600,7 +616,6 @@
     });
   }
 
-  // KML 첫 정류소를 스폰 위치로 설정하고, 해당 구간의 노선 진행 방향을 바라보도록 각도 계산
   function startFromRoute() {
     if (stops && stops.length > 0) {
       const firstStop = stops[0];
@@ -625,14 +640,7 @@
     } else if (route && route.pts.length > 0) {
       const p0 = route.pts[0];
       START.lng = p0[0]; START.lat = p0[1];
-      const a = toXY(p0[0], p0[1]);
-      for (let i = 1; i < route.pts.length; i++) {
-        const b = toXY(route.pts[i][0], route.pts[i][1]);
-        if (Math.hypot(b[0] - a[0], b[1] - a[1]) >= 30) {
-          START.heading = (Math.atan2(b[0] - a[0], b[1] - a[1]) * 180 / Math.PI + 360) % 360;
-          break;
-        }
-      }
+      START.heading = 0;
     }
 
     car.lat = START.lat; car.lng = START.lng; car.heading = START.heading;
@@ -675,7 +683,6 @@
     await loadRouteFile(nextRoute.file, false);
   }
 
-  // ───────── 초기화면(차량 & 노선 선택) 설정 ─────────
   async function initStartMenu() {
     const vSel = $('sel-vehicle');
     vSel.innerHTML = '';
@@ -726,7 +733,6 @@
     $('start-screen').hidden = false;
   });
 
-  // ───────── 승객 및 정류소 승하차 (앞문 F / 뒷문 G 연동) ─────────
   const paxTotal = () => pax.seated + pax.standing;
 
   function addPax(k) {
@@ -872,7 +878,6 @@
     }
   }
 
-  // ───────── 변속 / 리타더 / 줌 ─────────
   const GEAR_SEQ = [-1, 0, ...Array.from({ length: MAXG }, (_, i) => i + 1)];
   function shiftGear(d) {
     if (VEH.trans !== 'manual') return;
@@ -901,7 +906,6 @@
     last = performance.now();
   }
 
-  // ───────── 키보드 입력 ─────────
   const keyMap = {
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
     ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
@@ -966,7 +970,6 @@
     if (!S.trail) { trailPts = []; setTrail([]); }
   });
 
-  // ───────── 물리 엔진 & 루프 ─────────
   function torque(frac) {
     if (frac < 0.12) return 0.35 + 0.35 * (frac / 0.12);
     if (frac < 0.3) return 0.7 + 0.3 * ((frac - 0.12) / 0.18);
