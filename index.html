@@ -102,6 +102,7 @@
   .stop .nm { display: block; font-weight: 600; }
   .stop .ct { display: block; color: var(--mute); font-size: 11px; font-variant-numeric: tabular-nums; }
   .stop.turn .dot { background: #7b3fb8; }
+  .stop.garage .dot { background: #455a64; border-radius: 6px; }
   .stop.servicing .dot { background: var(--ok); }
   .stop.done .dot { background: #8a93a5; }
   .stop.passed .dot { background: var(--warn); }
@@ -441,6 +442,9 @@
     return out;
   }
   const longestLine = parsed => parsed.lines.reduce((a, b) => (b.pts.length > a.pts.length ? b : a));
+  // 선(LineString)이 없어도 점이 2개 이상이면 점을 KML 순서대로 이어서 노선으로 사용
+  const routeUsable = parsed => parsed.lines.length > 0 || parsed.points.length >= 2;
+  const routeStartOf = parsed => (parsed.lines.length ? longestLine(parsed).pts[0] : [parsed.points[0].lng, parsed.points[0].lat]);
 
   const LAT0 = 37.56;   // 거리 계산용 기준 위도 (서울 노선이라 충분)
   const toXY = (lng, lat) => [lng * M_PER_DEG * Math.cos(LAT0 * Math.PI / 180), lat * M_PER_DEG];
@@ -466,23 +470,45 @@
     return best;
   }
 
-  function clearMarkers() { stops.forEach(st => { if (st.marker) st.marker.remove(); st.marker = null; }); }
+  let garages = [];          // 차고지 (정류소가 아님)
+  let garageMarkers = [];
+  let firstPlace = null;     // 노선의 첫 장소
+  function clearMarkers() {
+    stops.forEach(st => { if (st.marker) st.marker.remove(); st.marker = null; });
+    garageMarkers.forEach(m => m.remove());
+    garageMarkers = [];
+  }
 
-  // 현재 노선(currentParsed)으로 정류소 목록을 새로 만든다 (대기 승객은 랜덤)
+  const TURN_RE = /회차\s*(점|지)/;
+  // 현재 노선(currentParsed)으로 장소 목록을 새로 만든다.
+  //  - 선(LineString)이 있으면 그 선을, 없으면 점들을 KML에 적힌 순서대로 이은 선을 노선으로 사용
+  //  - 회차 정보가 있는 KML은 첫 장소를 차고지로 보고, 이름·설명에 '차고'가 들어간 장소도 차고지로 봄 (정류소가 아님)
   function initStops() {
     clearMarkers();
-    const line = longestLine(currentParsed);
-    route = { name: line.name || '노선', pts: line.pts };
-    stops = currentParsed.points.map(p => Object.assign(
-      { name: p.name, lng: p.lng, lat: p.lat, desc: p.desc },
-      projectOnRoute(p.lng, p.lat),
-      { state: 'pending', inside: false, el: null, marker: null, sess: null, ringDone: false }
-    ));
-    stops.sort((a, b) => a.s - b.s);
+    const parsed = currentParsed;
+    const fname = currentFile ? displayName(currentFile) : '';
+    const places = parsed.points.map(p => Object.assign({}, p));
+    if (parsed.lines.length) {
+      const line = longestLine(parsed);
+      route = { name: line.name || fname || '노선', pts: line.pts, guide: false };
+      places.forEach(p => Object.assign(p, projectOnRoute(p.lng, p.lat)));
+      places.sort((a, b) => a.s - b.s);
+    } else {
+      route = { name: fname || '노선', pts: places.map(p => [p.lng, p.lat]), guide: true };
+      places.forEach(p => Object.assign(p, projectOnRoute(p.lng, p.lat)));
+    }
+    const hasTurn = places.some(p => TURN_RE.test(p.desc));
+    places.forEach((p, i) => { p.garage = /차고/.test(p.name + ' ' + p.desc) || (i === 0 && hasTurn); });
+    firstPlace = places.length ? places[0] : null;
+    garages = places.filter(p => p.garage);
+    stops = places.filter(p => !p.garage).map(p => ({
+      name: p.name, lng: p.lng, lat: p.lat, desc: p.desc, s: p.s, d: p.d,
+      state: 'pending', inside: false, el: null, marker: null, sess: null, ringDone: false
+    }));
     stops.forEach((st, i) => {
       if (!st.name || /^제목 없는/.test(st.name)) st.name = '정류소 ' + (i + 1);
-      st.turn = i > 0 && /회차\s*(점|지)/.test(st.desc);        // 설명에 '회차점'이 적힌 정류소 (첫 정류소는 제외)
-      st.waiting = st.turn ? 0 : randInt(0, 18);                  // 대기 승객 (랜덤)
+      st.turn = TURN_RE.test(st.desc);                              // 설명에 '회차점'이 적힌 정류소 = 회차지(종점)
+      st.waiting = st.turn ? randInt(3, 15) : randInt(0, 18);       // 대기 승객 (랜덤)
       st.growT = randInt(10, 25);
       st.ringDist = randInt(CFG.ringDist[0], CFG.ringDist[1]);
     });
@@ -491,7 +517,7 @@
     if (mapReady) buildMarkers();
   }
 
-  function stopLabel(st) { return st.turn ? '회차점' : '대기 ' + st.waiting + '명'; }
+  function stopLabel(st) { return (st.turn ? '회차점 · ' : '') + '대기 ' + st.waiting + '명'; }
   function buildMarkers() {
     stops.forEach((st, i) => {
       if (st.marker) return;
@@ -505,6 +531,18 @@
       st.el = el; st.ct = lab.lastChild;
       st.marker = new maplibregl.Marker({ element: el }).setLngLat([st.lng, st.lat]).addTo(map);
     });
+    if (!garageMarkers.length) {
+      garages.forEach(g => {
+        const el = document.createElement('div');
+        el.className = 'stop garage';
+        el.innerHTML = '<div class="dot"></div><div class="lab"><span class="nm"></span><span class="ct"></span></div>';
+        el.firstChild.textContent = '차';
+        const lab = el.lastChild;
+        lab.firstChild.textContent = !g.name || /^제목 없는/.test(g.name) ? '차고지' : g.name;
+        lab.lastChild.textContent = '차고지';
+        garageMarkers.push(new maplibregl.Marker({ element: el }).setLngLat([g.lng, g.lat]).addTo(map));
+      });
+    }
   }
   function refreshStop(st) { if (st.ct) setText(st.ct, stopLabel(st)); }
   function setStopState(st, state) {
@@ -515,13 +553,18 @@
   function drawRoute() {
     if (!mapReady || !route) return;
     const geo = { type: 'Feature', geometry: { type: 'LineString', coordinates: route.pts } };
+    const solid = route.guide ? emptyLine : geo;      // 선이 있는 노선: 실선
+    const guide = route.guide ? geo : emptyLine;      // 점만 있는 노선: 점들을 이은 점선(안내선)
     const src = map.getSource('route');
-    if (src) src.setData(geo);
+    if (src) { src.setData(solid); map.getSource('route-guide').setData(guide); }
     else {
-      map.addSource('route', { type: 'geojson', data: geo });
+      map.addSource('route', { type: 'geojson', data: solid });
+      map.addSource('route-guide', { type: 'geojson', data: guide });
       const layout = { 'line-cap': 'round', 'line-join': 'round' };
       map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout, paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.9 } }, 'trail');
       map.addLayer({ id: 'route', type: 'line', source: 'route', layout, paint: { 'line-color': '#1976d2', 'line-width': 5, 'line-opacity': 0.85 } }, 'trail');
+      map.addLayer({ id: 'route-guide', type: 'line', source: 'route-guide', layout: { 'line-cap': 'butt', 'line-join': 'round' },
+        paint: { 'line-color': '#1976d2', 'line-width': 4, 'line-opacity': 0.8, 'line-dasharray': [2, 1.5] } }, 'trail');
     }
     buildMarkers();
   }
@@ -532,12 +575,13 @@
     drawRoute();
   }
 
+  // 첫 장소에서 스폰: 첫 장소가 차고지면 차고지에서, 아니면 노선의 첫 점(= 첫 정류소 또는 선의 시작점)에서 출발
   function startFromRoute() {
     if (!route) return;
-    const p0 = route.pts[0];
-    START.lng = p0[0]; START.lat = p0[1];
-    const a = toXY(p0[0], p0[1]);
-    for (let i = 1; i < route.pts.length; i++) {          // 시작점에서 40m 이상 떨어진 첫 점 방향을 바라보게
+    const sp = firstPlace && firstPlace.garage ? [firstPlace.lng, firstPlace.lat] : route.pts[0];
+    START.lng = sp[0]; START.lat = sp[1];
+    const a = toXY(sp[0], sp[1]);
+    for (let i = 0; i < route.pts.length; i++) {          // 출발점에서 40m 이상 떨어진 첫 점 방향을 바라보게
       const b = toXY(route.pts[i][0], route.pts[i][1]);
       if (Math.hypot(b[0] - a[0], b[1] - a[1]) >= 40) {
         START.heading = (Math.atan2(b[0] - a[0], b[1] - a[1]) * 180 / Math.PI + 360) % 360;
@@ -600,8 +644,8 @@
       for (const f of cands) {
         try {
           const parsed = parseKML(await loadRouteText(f));
-          if (!parsed.lines.length) continue;
-          const p0 = longestLine(parsed).pts[0];
+          if (!routeUsable(parsed)) continue;
+          const p0 = routeStartOf(parsed);
           const d = distM(car.lat, car.lng, p0[1], p0[0]);
           if (d < bd) { bd = d; best = { f, parsed }; }
         } catch (e) { /* 다음 후보 */ }
@@ -609,7 +653,9 @@
       if (!best) { st.noSwitch = true; toast('회차점이에요. 같은 번호의 반대 방향 노선 파일(route 폴더)이 없어요'); return; }
       bell.count = 0;
       applyRoute(best.parsed, best.f);
-      toast('회차 완료 · ' + displayName(best.f) + ' 노선으로 전환');
+      // 회차지에서 이미 승하차를 마쳤으니, 같은 자리의 새 노선 첫 정류소는 다시 서비스하지 않음
+      for (const s2 of stops) if (distM(car.lat, car.lng, s2.lat, s2.lng) <= CFG.stopRadius + 10) setStopState(s2, 'done');
+      toast('회차 완료 · ' + displayName(best.f) + ' 노선으로 전환' + (paxTotal() ? ' · 승객 ' + paxTotal() + '명 탑승 중' : ''));
     } finally { switching = false; }
   }
 
@@ -651,12 +697,18 @@
     if (st.turn) bell.count = total;                   // 회차점: 전원 하차
     else if (bell.count === 0) bell.count = Math.min(total, Math.max(1, Math.round(total * (0.1 + Math.random() * 0.4))));   // 탑승객의 10~50%가 하차벨
   }
+  // 뒤쪽 정류소에 서거나 지나쳤다면 그 앞의 미처리 정류소는 지나친 것으로 처리
+  function passEarlier(st) {
+    const i = stops.indexOf(st);
+    for (let k = 0; k < i; k++) if (stops[k].state === 'pending') passStop(stops[k]);
+  }
   function beginService(st) {
+    passEarlier(st);
     const total = paxTotal();
     const outPlan = st.turn ? total : Math.min(total, bell.count);
     const room = Math.max(0, VEH.capacity - (total - outPlan));
-    const inPlan = st.turn ? 0 : Math.min(st.waiting, room);
-    st.sess = { outPlan, inPlan, outDone: 0, inDone: 0, tOut: 0, tIn: 0, full: !st.turn && st.waiting > room };
+    const inPlan = Math.min(st.waiting, room);       // 회차지에서도 승차 가능 (전원 하차 후 대기 승객이 탑승)
+    st.sess = { outPlan, inPlan, outDone: 0, inDone: 0, tOut: 0, tIn: 0, full: st.waiting > room };
     setStopState(st, 'servicing');
     toast(st.name + ' 도착' + (st.turn ? ' (회차점)' : '') + ' · 승하차를 진행하세요');
     if (st.sess.full) toast(st.name + ' · 만차라 일부 승객은 타지 못해요');
@@ -670,6 +722,7 @@
   }
   function passStop(st) {
     setStopState(st, 'passed');
+    passEarlier(st);
     if (bell.count > 0 || st.waiting > 0) {
       pax.skipped++;
       toast(st.name + ' 무정차 통과 · ' + (bell.count > 0 ? '하차벨 승객이 내리지 못했어요' : '대기 승객을 태우지 못했어요'));
@@ -693,21 +746,25 @@
         s.tIn -= CFG.boardSec; addPax(1); st.waiting = Math.max(0, st.waiting - 1); s.inDone++; pax.totalIn++; refreshStop(st);
       }
     }
-    // 회차점: 전원 하차 후 문을 닫으면 반대 방향 노선으로 전환
-    if (st.turn && !st.noSwitch && paxTotal() === 0 && doorsClosed() && !switching) { switchRoute(st); return; }
+    // 회차지: 도착 당시 승객이 모두 내린 뒤 문을 닫으면 반대 방향 노선으로 전환 (그 사이 탄 승객은 그대로 탑승)
+    if (st.turn && !st.noSwitch && s.outDone >= s.outPlan && doorsClosed() && !switching) {
+      pax.last = { name: st.name, out: s.outDone, inn: s.inDone };
+      switchRoute(st);
+      return;
+    }
     // 정류소를 벗어나면 서비스 종료
     if (distM(car.lat, car.lng, st.lat, st.lng) > CFG.stopRadius + 15) finishService(st);
   }
   function updateStops(dt) {
     // 정류소 대기 승객이 조금씩 늘어남
     for (const st of stops) {
-      if (st.state !== 'pending' || st.turn) continue;
+      if (st.state !== 'pending') continue;
       st.growT -= dt;
       if (st.growT <= 0) { st.waiting = Math.min(CFG.maxWaiting, st.waiting + 1); st.growT = randInt(10, 25); refreshStop(st); }
     }
     // 노선상 위치로 이미 지나친 정류소 처리 (정류소 반경을 비켜 갔거나 건너뛴 경우에도 '다음 정류소'가 막히지 않게)
     progT += dt;
-    if (route && progT >= 0.25) {
+    if (route && !route.guide && progT >= 0.25) {   // 점만 있는 노선은 직선 안내선이라 정확하지 않으므로 순서 기준 처리만 사용
       progT = 0;
       const pr = projectOnRoute(car.lng, car.lat, busS - 80, busS + 400);   // 직전 진행 위치 근처에서만 찾음
       if (pr.d < 120) {
@@ -719,7 +776,9 @@
     }
     // 다음 정류소에 가까워지면 승객이 하차벨을 누름
     const nx = stops.find(s => s.state === 'pending');
-    if (nx && !nx.ringDone && paxTotal() > 0 && distM(car.lat, car.lng, nx.lat, nx.lng) < nx.ringDist) { nx.ringDone = true; ringBell(nx); }
+    const servicingNow = stops.some(s => s.state === 'servicing');   // 직전 정류소에서 승하차 중이면 끝난 뒤에 계산
+    if (nx && !nx.ringDone && !servicingNow && paxTotal() > 0 && distM(car.lat, car.lng, nx.lat, nx.lng) < nx.ringDist) { nx.ringDone = true; ringBell(nx); }
+    if (nx && nx.turn && nx.ringDone) bell.count = paxTotal();      // 회차지에서는 탑승객 전원이 내림 (접근 중 탑승 인원이 바뀌어도 반영)
     // 서비스 중인 정류소
     let cur = stops.find(s => s.state === 'servicing');
     if (!cur) {
@@ -881,7 +940,7 @@
       let parsed = null;
       if (rf) {
         try { parsed = parseKML(await loadRouteText(rf)); } catch (e) { setText($('start-msg'), e.message); }
-        if (parsed && !parsed.lines.length) { parsed = null; setText($('start-msg'), 'KML에 노선(선)이 없어요'); }
+        if (parsed && !routeUsable(parsed)) { parsed = null; setText($('start-msg'), 'KML에 노선(선) 또는 점 2개 이상이 필요해요'); }
       }
       applyCar(c);
       S.bus = c.file; S.route = rf || null; saveS();
@@ -938,8 +997,7 @@
       else if (s.outDone >= s.outPlan) setFlow(el.flout, '하차 완료 ' + s.outDone + '명');
       else if (ro || fo) setFlow(el.flout, '내리는 중 ' + s.outDone + '/' + s.outPlan, 'act');
       else setFlow(el.flout, '뒷문을 여세요 0/' + s.outPlan, 'wait');
-      if (svc.turn) setFlow(el.flin, '회차점 · 승차 없음');
-      else if (s.inPlan === 0) setFlow(el.flin, svc.waiting > 0 ? '만차' : '대기 승객 없음');
+      if (s.inPlan === 0) setFlow(el.flin, svc.waiting > 0 ? '만차' : '대기 승객 없음');
       else if (s.inDone >= s.inPlan) setFlow(el.flin, '승차 완료 ' + s.inDone + '명');
       else if (fo) setFlow(el.flin, '타는 중 ' + s.inDone + '/' + s.inPlan, 'act');
       else setFlow(el.flin, '앞문을 여세요 0/' + s.inPlan, 'wait');
@@ -1135,7 +1193,7 @@
     requestAnimationFrame(step);
   }
 
-  window.__bus = { car, pax, bell, doors, keys, S, CFG, get stops() { return stops; }, get route() { return route; }, get phase() { return phase; },
+  window.__bus = { car, pax, bell, doors, keys, S, CFG, get stops() { return stops; }, get route() { return route; }, get garages() { return garages; }, get phase() { return phase; },
     get currentFile() { return currentFile; }, get VEH() { return VEH; }, get cars() { return cars; }, get routeFiles() { return routeFiles; } };   // 디버깅용
   initMenu();
   requestAnimationFrame(step);
