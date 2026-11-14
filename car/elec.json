@@ -1,0 +1,38 @@
+{
+  "name": "현대 일렉시티",
+  "transmission": "electric",
+  "wheelbase": 5.4,
+  "maxSteer": 35,
+  "latLimit": 3.0,
+  "seats": 27,
+  "capacity": 50,
+  "gearLimit": [
+    0,
+    80
+  ],
+  "gearRec": [
+    null,
+    [
+      0,
+      80
+    ]
+  ],
+  "reverseLimit": 15,
+  "idle": 0,
+  "redline": 12000,
+  "doorTime": 1.2,
+  "gearAcc": [
+    0,
+    1.5
+  ],
+  "brake": {
+    "service": 2.5,
+    "full": 4.8,
+    "airLag": 0.1,
+    "fullLag": 0.05
+  },
+  "retarder": {
+    "stages": 4,
+    "maxDecel": 2.0
+  }
+}
