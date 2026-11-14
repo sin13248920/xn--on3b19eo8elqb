@@ -1,0 +1,66 @@
+{
+  "name": "에어로시티 (저상)",
+  "transmission": "auto",
+  "wheelbase": 6.0,
+  "maxSteer": 35,
+  "latLimit": 3.0,
+  "seats": 30,
+  "capacity": 60,
+  "gearLimit": [
+    0,
+    18,
+    35,
+    52,
+    72,
+    88
+  ],
+  "gearRec": [
+    null,
+    [
+      0,
+      12
+    ],
+    [
+      12,
+      28
+    ],
+    [
+      28,
+      45
+    ],
+    [
+      45,
+      65
+    ],
+    [
+      65,
+      85
+    ]
+  ],
+  "reverseLimit": 8,
+  "idle": 650,
+  "redline": 2600,
+  "doorTime": 1.2,
+  "gearAcc": [
+    0,
+    1.2,
+    1.0,
+    0.88,
+    0.78,
+    0.72
+  ],
+  "brake": {
+    "service": 2.0,
+    "full": 4.2,
+    "airLag": 0.2,
+    "fullLag": 0.08
+  },
+  "retarder": {
+    "decel": [
+      0,
+      0.6,
+      1.0,
+      1.4
+    ]
+  }
+}
