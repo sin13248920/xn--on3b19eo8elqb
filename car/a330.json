@@ -1,0 +1,66 @@
+{
+  "name": "에어버스 A330",
+  "transmission": "auto",
+  "wheelbase": 60.3,
+  "maxSteer": 35.0,
+  "latLimit": 25.0,
+  "seats": 277,
+  "capacity": 242000,
+  "gearLimit": [
+    0,
+    140,
+    220,
+    300,
+    450,
+    900
+  ],
+  "gearRec": [
+    null,
+    [
+      0,
+      140
+    ],
+    [
+      140,
+      220
+    ],
+    [
+      220,
+      300
+    ],
+    [
+      300,
+      450
+    ],
+    [
+      450,
+      900
+    ]
+  ],
+  "reverseLimit": 50,
+  "idle": 2500,
+  "redline": 12000,
+  "doorTime": 5.0,
+  "gearAcc": [
+    0,
+    3.5,
+    5.0,
+    7.5,
+    12.0,
+    20.0
+  ],
+  "brake": {
+    "service": 30.0,
+    "full": 70.0,
+    "airLag": 1.5,
+    "fullLag": 3.0
+  },
+  "retarder": {
+    "decel": [
+      0,
+      5.0,
+      12.0,
+      25.0
+    ]
+  }
+}
