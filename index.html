@@ -950,10 +950,20 @@
   async function beginGame() {
     const c = cars[Number(selBus.value)];
     if (!c) return;
-    // 오디오 컨텍스트는 사용자 클릭 직후 활성화해야 브라우저 자동재생 제한에 걸리지 않음
-    try { await BusAudio.unlock(); } catch (audioError) { console.warn('오디오 초기화 실패', audioError); }
+    // 오디오는 사용자 클릭 직후 활성화하되, 음원 다운로드·디코딩을 기다리느라
+    // 게임 시작이 막히지 않도록 백그라운드에서 준비한다.
     btnStart.disabled = true;
     try {
+      if (window.BusAudio) {
+        const audioReady = BusAudio.unlock();
+        audioReady
+          .then(() => BusAudio.loadProfile(c.sound && c.sound.engine))
+          .then(() => BusAudio.pause(false))
+          .catch(audioError => {
+            console.warn('엔진/효과음 준비 실패:', audioError);
+            toast('사운드를 불러오지 못했어요. 게임은 계속할 수 있습니다.');
+          });
+      }
       const rf = routeFiles[Number(selRoute.value)];
       let parsed = null;
       if (rf) {
