@@ -55,5 +55,8 @@
     "airLag": 0.15,
     "fullLag": 0.08
   },
-  "retarder": null
+  "retarder": null,
+  "sound": {
+    "engine": "q290-euro6"
+  }
 }

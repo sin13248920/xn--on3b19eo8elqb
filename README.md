@@ -58,3 +58,13 @@ gearLimit, gearAcc, gearRec는 항목 수가 같아야 해요.
 
 ## 조작
 W/S 가속·브레이크, A/D 조향, Space 비상브레이크, F 앞문, G 뒷문, P 주차브레이크, R/T 리타더(있는 버스), Shift+E/Q 변속(수동 버스), Z/X 지도 확대·축소, / 정지화면
+
+
+## 엔진 사운드 (초기 구현)
+- `sound-engine.js`가 Web Audio API로 엔진 루프 샘플을 재생합니다.
+- 차량 JSON의 `sound.engine`에 사운드 프로필 ID를 지정합니다. 현재 포함된 프로필은 `q290-euro6`입니다.
+- `Sound/Q290 Euro6/`에는 `Sound_Q290(Euro6).cfg`에서 참조되고 ZIP에 실제 존재하는 6개 WAV만 복사했습니다.
+- 원본 CFG의 `301low3.wav` 참조 파일은 ZIP에 없어 제외했습니다.
+- 현재 두 에어로시티 차량에 연결된 Q290 Euro6 프로필은 **작동 확인용 임시 연결**입니다. Q290 엔진이 실제 에어로시티의 엔진이라는 뜻은 아니며, 차량별 정확한 엔진 사양이 확인되면 JSON의 `sound.engine`을 교체해야 합니다.
+- 게임 출발 버튼을 누를 때 오디오를 활성화하며, 설정에서 엔진음 음량을 조절할 수 있습니다.
+- GitHub Pages에 배포할 때 `sound-engine.js`, `Sound/`, `car/`를 함께 올려야 합니다.

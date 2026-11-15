@@ -92,6 +92,9 @@
   #help button, #pause button { padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; color: var(--ink); }
   #help .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
   #panel { font-size: 14px; display: grid; gap: 12px; }
+  #panel .sound-setting { display: flex; align-items: center; gap: 8px; }
+  #sound-volume { width: 105px; }
+  #sound-volume-value { min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
   #panel label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--car); outline-offset: 2px; }
 
@@ -195,6 +198,7 @@
 
   <div id="panel" class="hud" hidden>
     <label><input type="checkbox" id="trail"> 주행 궤적 남기기</label>
+    <label class="sound-setting">엔진음 음량 <input type="range" id="sound-volume" min="0" max="1" step="0.05" value="0.65"><span id="sound-volume-value">65%</span></label>
   </div>
 </div>
 
@@ -238,6 +242,7 @@
 <Placemark><name>신내데시앙</name><Point><coordinates>127.1010083925326,37.6104763079155</coordinates></Point></Placemark>
 </Document></kml></script>
 <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script src="sound-engine.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -279,7 +284,7 @@
   const KEY = 'map-drive-settings-v4';
   const loadS = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const saveS = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-  const S = Object.assign({ trail: true, zoom: 17, bus: null, route: null }, loadS());
+  const S = Object.assign({ trail: true, zoom: 17, bus: null, route: null, soundVolume: 0.65 }, loadS());
   S.zoom = clamp(Math.round((Number(S.zoom) || 17) * 2) / 2, 15.5, 19);
 
   // ───────── 버스 정의 (car 폴더의 JSON 파일) ─────────
@@ -819,6 +824,7 @@
   // ───────── 정지화면 / 초기화면 ─────────
   function setPause(p) {
     paused = p;
+    if (window.BusAudio) BusAudio.pause(p || phase !== 'play');
     $('pause').hidden = !p;
     Object.keys(keys).forEach(k => keys[k] = false);
     last = performance.now();
@@ -826,6 +832,7 @@
   function toMenu() {
     setPause(false);
     phase = 'menu';
+    if (window.BusAudio) BusAudio.pause(true);
     document.body.classList.add('menu');
     $('start').hidden = false;
   }
@@ -888,6 +895,11 @@
     S.trail = e.target.checked; saveS(); e.target.blur();
     if (!S.trail) { trailPts = []; setTrail([]); }
   });
+  const soundVolume = $('sound-volume');
+  soundVolume.value = String(S.soundVolume);
+  setText($('sound-volume-value'), Math.round(S.soundVolume * 100) + '%');
+  if (window.BusAudio) BusAudio.setVolume(S.soundVolume);
+  soundVolume.addEventListener('input', e => { S.soundVolume = Number(e.target.value); setText($('sound-volume-value'), Math.round(S.soundVolume * 100) + '%'); if (window.BusAudio) BusAudio.setVolume(S.soundVolume); saveS(); });
 
   // ───────── 초기화면 ─────────
   const selBus = $('sel-bus'), selRoute = $('sel-route'), btnStart = $('btn-start');
@@ -934,6 +946,8 @@
   async function beginGame() {
     const c = cars[Number(selBus.value)];
     if (!c) return;
+    // 오디오 컨텍스트는 사용자 클릭 직후 활성화해야 브라우저 자동재생 제한에 걸리지 않음
+    try { await BusAudio.unlock(); } catch (audioError) { console.warn('오디오 초기화 실패', audioError); }
     btnStart.disabled = true;
     try {
       const rf = routeFiles[Number(selRoute.value)];
@@ -943,6 +957,8 @@
         if (parsed && !routeUsable(parsed)) { parsed = null; setText($('start-msg'), 'KML에 노선(선) 또는 점 2개 이상이 필요해요'); }
       }
       applyCar(c);
+      try { await BusAudio.loadProfile(c.sound && c.sound.engine); BusAudio.pause(false); }
+      catch (audioError) { console.warn('엔진 사운드를 불러오지 못했습니다.', audioError); toast('엔진 사운드를 불러오지 못했어요. 파일 경로와 브라우저 권한을 확인해 주세요.'); }
       S.bus = c.file; S.route = rf || null; saveS();
       if (parsed) { startFile = rf; startParsed = parsed; applyRoute(parsed, rf); startFromRoute(); }
       else { startFile = null; startParsed = null; currentParsed = null; currentFile = null; clearMarkers(); stops = []; route = null; setText($('route-name'), '노선 없음'); }
@@ -1120,6 +1136,7 @@
     if (engaged) rpmTarget = IDLE + (REDLINE - IDLE) * Math.min(1, Math.abs(car.v) / gm);
     else rpmTarget = IDLE + (REDLINE - IDLE) * car.thr * 0.85;
     car.rpm += (rpmTarget - car.rpm) * Math.min(1, dt * (engaged ? 10 : 6));
+    if (window.BusAudio) BusAudio.update(car.rpm, car.thr, dt);
 
     // 조향 (자전거 모델): 속도가 높을수록 조향각을 제한, 멈춰 있으면 회전 불가
     const av = Math.abs(car.v);
