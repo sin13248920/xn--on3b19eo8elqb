@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:ex="http://earth.google.com/kml/ext">
+<Document id="document">
+	<ex:extension>base64;CooBCoEBCn8KAggBEnkKdwokCiAKAwjQDxoHCNLtZRD_ASEAAAAAAADwPykAAAAAAAAAABgAEg8KCAitgO8HEP8BEKAfGAAaGgoHCP___wcQQBIICK2A7wcQ_wEYoB8gACgAIgkIARIFCP___wcqFwgBEggI____BxD_ARkAAAAAAADwPyAAEgQIARAA</ex:extension>
+	<name>김포공항-제주공항</name>
+	<gx:CascadingStyle kml:id="__managed_style_06A0639D0E4314CBB339_highlight">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>4</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<displayMode>hide</displayMode>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_06A0639D0E4314CBB339_normal">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>2.66667</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<displayMode>hide</displayMode>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_06A0639D0E4314CBB339">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_06A0639D0E4314CBB339_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_06A0639D0E4314CBB339_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Placemark id="053E0E18CF4314CBB314">
+		<name>김포국제공항(GMP, RKSS)</name>
+		<LookAt>
+			<longitude>126.8018453964299</longitude>
+			<latitude>37.55065747617662</latitude>
+			<altitude>11.51082740917092</altitude>
+			<heading>0.2094758581626725</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>1890.810940794472</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_06A0639D0E4314CBB339</styleUrl>
+		<Point>
+			<coordinates>126.806973469639,37.547937542911,12.38121994284815</coordinates>
+		</Point>
+	</Placemark>
+	<Placemark id="051ACAA74F4314CE72D3">
+		<name>제주국제공항(CJU, RKPC)</name>
+		<LookAt>
+			<longitude>126.4935618006482</longitude>
+			<latitude>33.51311452785907</latitude>
+			<altitude>21.06602805926509</altitude>
+			<heading>0.2094758510743492</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>1328.105090827594</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_06A0639D0E4314CBB339</styleUrl>
+		<Point>
+			<coordinates>126.4920949962567,33.51200524009907,19.61725963446033</coordinates>
+		</Point>
+	</Placemark>
+</Document>
+</kml>
